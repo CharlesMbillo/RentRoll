@@ -1,0 +1,68 @@
+build a comprehensive rent collection platform with the following key components:
+
+
+Frontend Architecture:
+
+    Authentication system with role-based access (Landlord, Caretaker, Tenant)
+    Interactive dashboard with 74-room matrix (color-coded: Green=Paid, Yellow=Pending, Red=Overdue)
+    Tenant management interface
+    Payment processing with M-Pesa STK Push integration
+    SMS notification system
+    Reports and analytics dashboard
+
+
+Backend Implementation:
+
+    User authentication and role management
+    Tenant and room CRUD operations
+    M-Pesa payment integration with webhook handling
+    SMS notification system for reminders and escalations
+    Payment reconciliation and audit logging
+    Report generation endpoints
+
+
+Key Features:
+
+    Real-time room status visualization
+    Automated payment reminders (3 days before due)
+    Overdue escalation (7 days after due)
+    Payment history tracking
+    Revenue and occupancy reports
+    Secure API integrations
+
+
+I'll start by setting up the backend infrastructure and then build the frontend components.
+build the frontend component
+
+I'll build a comprehensive frontend for your rent collection and management platform. Let me start by creating the main application structure with authentication, dashboard, and all the key components.
+
+I've built a comprehensive rent collection and management platform for State House Block D. The application includes all the core features you specified:
+
+
+Key Features Implemented:
+
+
+• Authentication System - Login/signup with role-based access (Landlord, Caretaker, Tenant)
+• Interactive Room Matrix - Visual grid of all 74 units with color-coded status (Green=Paid, Yellow=Pending, Red=Overdue, Gray=Vacant)
+• Tenant Management - Complete CRUD operations for tenant data with search and filtering
+• Payment Processing - M-Pesa integration interface, payment history, and multiple payment methods
+• Analytics & Reports - Revenue tracking, occupancy rates, payment status charts with export functionality
+• System Settings - Configurable notification preferences, security settings, and system-wide configurations
+
+
+Dashboard Features:
+
+    Real-time occupancy metrics (89% occupancy rate displayed)
+    Monthly revenue tracking (KSh 890K shown)
+    Color-coded room status matrix with search functionality
+    Role-based navigation and access control
+    SMS notification system for payment reminders
+    Comprehensive reporting with multiple chart types
+
+
+The application uses a clean, professional design with Tailwind CSS and includes mock data for demonstration. The frontend is fully responsive and ready for backend integration when your Supabase connection is resolved.
+
+
+• Next Steps: Integrate M-Pesa Daraja API for live payments, connect SMS service for automated reminders, and set up the backend database schema
+• Testing: You can test different user roles using the demo credentials shown in the login form
+• Mobile Ready: The interface is fully responsive and optimized for both desktop and mobile management
