@@ -343,7 +343,7 @@ export default function Notifications() {
                   {notifications.map((notification) => (
                     <tr key={notification.id} className="hover:bg-muted/50" data-testid={`notification-row-${notification.id}`}>
                       <td className="py-4 px-6 text-foreground" data-testid={`text-notification-date-${notification.id}`}>
-                        {new Date(notification.createdAt).toLocaleDateString()} {new Date(notification.createdAt).toLocaleTimeString()}
+                        {notification.createdAt ? new Date(notification.createdAt).toLocaleDateString() : "-"} {notification.createdAt ? new Date(notification.createdAt).toLocaleTimeString() : ""}
                       </td>
                       <td className="py-4 px-6 text-foreground" data-testid={`text-notification-phone-${notification.id}`}>
                         {notification.phoneNumber}

@@ -2,6 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -81,7 +82,7 @@ export default function MpesaForm({ onClose }: MpesaFormProps) {
   const tenant = tenants.find(t => t.id === selectedTenant);
 
   // Auto-fill phone number when tenant is selected
-  React.useEffect(() => {
+  useEffect(() => {
     if (tenant) {
       form.setValue("phoneNumber", tenant.phone);
       form.setValue("roomId", tenant.roomId || "");

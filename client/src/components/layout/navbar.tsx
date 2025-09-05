@@ -8,9 +8,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { User } from "@/lib/types";
 
 export default function Navbar() {
-  const { user } = useAuth();
+  const { user } = useAuth() as { user: User | null };
 
   const handleLogout = () => {
     window.location.href = "/api/logout";
@@ -56,7 +57,7 @@ export default function Navbar() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center space-x-2" data-testid="button-user-menu">
                 <Avatar className="w-8 h-8">
-                  <AvatarImage src={user?.profileImageUrl || ""} />
+                  <AvatarImage src={user?.profileImageUrl || undefined} />
                   <AvatarFallback className="text-xs">
                     {getInitials(user?.firstName, user?.lastName)}
                   </AvatarFallback>

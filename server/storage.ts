@@ -137,7 +137,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProperty(id: string): Promise<boolean> {
     const result = await db.delete(properties).where(eq(properties.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Room operations
@@ -170,7 +170,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteRoom(id: string): Promise<boolean> {
     const result = await db.delete(rooms).where(eq(rooms.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Tenant operations
@@ -228,7 +228,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(rooms.id, tenant.roomId));
     }
     
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Payment operations
@@ -281,7 +281,7 @@ export class DatabaseStorage implements IStorage {
 
   async deletePayment(id: string): Promise<boolean> {
     const result = await db.delete(payments).where(eq(payments.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // SMS Notification operations

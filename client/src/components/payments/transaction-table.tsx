@@ -71,7 +71,7 @@ export default function TransactionTable({ payments }: TransactionTableProps) {
           {payments.map((payment) => (
             <tr key={payment.id} className="hover:bg-muted/50" data-testid={`payment-row-${payment.id}`}>
               <td className="py-4 px-6 text-foreground" data-testid={`text-payment-date-${payment.id}`}>
-                {format(new Date(payment.createdAt), "MMM dd, yyyy")}
+                {payment.createdAt ? format(new Date(payment.createdAt), "MMM dd, yyyy") : "-"}
               </td>
               <td className="py-4 px-6 text-foreground font-medium" data-testid={`text-payment-amount-${payment.id}`}>
                 {formatCurrency(payment.amount)}
