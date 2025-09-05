@@ -1,0 +1,244 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(210, 40%, 98%);
+  --foreground: hsl(210, 11%, 15%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(210, 11%, 15%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(210, 11%, 15%);
+  --primary: hsl(214, 84%, 56%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(210, 40%, 96%);
+  --secondary-foreground: hsl(210, 11%, 15%);
+  --muted: hsl(210, 40%, 96%);
+  --muted-foreground: hsl(210, 11%, 46%);
+  --accent: hsl(210, 40%, 96%);
+  --accent-foreground: hsl(210, 11%, 15%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(210, 36%, 88%);
+  --input: hsl(210, 36%, 88%);
+  --ring: hsl(214, 84%, 56%);
+  --chart-1: hsl(214, 84%, 56%);
+  --chart-2: hsl(142, 76%, 36%);
+  --chart-3: hsl(38, 92%, 50%);
+  --chart-4: hsl(0, 84%, 60%);
+  --chart-5: hsl(280, 65%, 60%);
+  --sidebar: hsl(210, 40%, 96%);
+  --sidebar-foreground: hsl(210, 11%, 15%);
+  --sidebar-primary: hsl(214, 84%, 56%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-accent: hsl(210, 40%, 96%);
+  --sidebar-accent-foreground: hsl(214, 84%, 56%);
+  --sidebar-border: hsl(210, 36%, 88%);
+  --sidebar-ring: hsl(214, 84%, 56%);
+  --font-sans: Inter, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 8px;
+  --shadow-2xs: 0px 2px 0px 0px hsl(214, 84%, 56%, 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(214, 84%, 56%, 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(214, 84%, 56%, 0.00), 0px 1px 2px -1px hsl(214, 84%, 56%, 0.00);
+  --shadow: 0px 2px 0px 0px hsl(214, 84%, 56%, 0.00), 0px 1px 2px -1px hsl(214, 84%, 56%, 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(214, 84%, 56%, 0.00), 0px 2px 4px -1px hsl(214, 84%, 56%, 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(214, 84%, 56%, 0.00), 0px 4px 6px -1px hsl(214, 84%, 56%, 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(214, 84%, 56%, 0.00), 0px 8px 10px -1px hsl(214, 84%, 56%, 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(214, 84%, 56%, 0.00);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+}
+
+.dark {
+  --background: hsl(0, 0%, 0%);
+  --foreground: hsl(200, 6.6667%, 91.1765%);
+  --card: hsl(228, 9.8039%, 10%);
+  --card-foreground: hsl(0, 0%, 85.0980%);
+  --popover: hsl(0, 0%, 0%);
+  --popover-foreground: hsl(200, 6.6667%, 91.1765%);
+  --primary: hsl(214, 84%, 56%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(195, 15.3846%, 94.9020%);
+  --secondary-foreground: hsl(210, 25%, 7.8431%);
+  --muted: hsl(0, 0%, 9.4118%);
+  --muted-foreground: hsl(210, 3.3898%, 46.2745%);
+  --accent: hsl(205, 70%, 7.8431%);
+  --accent-foreground: hsl(214, 84%, 56%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(210, 5.2632%, 14.9020%);
+  --input: hsl(207, 27.6596%, 18.4314%);
+  --ring: hsl(214, 84%, 56%);
+  --chart-1: hsl(214, 84%, 56%);
+  --chart-2: hsl(142, 76%, 36%);
+  --chart-3: hsl(38, 92%, 50%);
+  --chart-4: hsl(0, 84%, 60%);
+  --chart-5: hsl(280, 65%, 60%);
+  --sidebar: hsl(228, 9.8039%, 10%);
+  --sidebar-foreground: hsl(0, 0%, 85.0980%);
+  --sidebar-primary: hsl(214, 84%, 56%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-accent: hsl(205, 70%, 7.8431%);
+  --sidebar-accent-foreground: hsl(214, 84%, 56%);
+  --sidebar-border: hsl(205, 15.7895%, 26.0784%);
+  --sidebar-ring: hsl(214, 84%, 56%);
+  --font-sans: Inter, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 8px;
+  --shadow-2xs: 0px 2px 0px 0px hsl(214, 84%, 56%, 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(214, 84%, 56%, 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(214, 84%, 56%, 0.00), 0px 1px 2px -1px hsl(214, 84%, 56%, 0.00);
+  --shadow: 0px 2px 0px 0px hsl(214, 84%, 56%, 0.00), 0px 1px 2px -1px hsl(214, 84%, 56%, 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(214, 84%, 56%, 0.00), 0px 2px 4px -1px hsl(214, 84%, 56%, 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(214, 84%, 56%, 0.00), 0px 4px 6px -1px hsl(214, 84%, 56%, 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(214, 84%, 56%, 0.00), 0px 8px 10px -1px hsl(214, 84%, 56%, 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(214, 84%, 56%, 0.00);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+/* Room Matrix Styles */
+.room-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+  gap: 8px;
+}
+
+.room-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.room-cell:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.room-paid { 
+  background-color: hsl(142, 76%, 36%); 
+  color: white; 
+}
+
+.room-pending { 
+  background-color: hsl(38, 92%, 50%); 
+  color: white; 
+}
+
+.room-overdue { 
+  background-color: hsl(0, 84%, 60%); 
+  color: white; 
+}
+
+.room-vacant { 
+  background-color: hsl(210, 16%, 82%); 
+  color: hsl(210, 11%, 46%); 
+}
+
+/* Chart Container */
+.chart-container {
+  height: 300px;
+}
+
+/* Sidebar Navigation Transition */
+.sidebar-nav {
+  transition: all 0.3s ease;
+}
+
+/* Custom Toggle Switch Styles */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: hsl(210, 16%, 82%);
+  transition: 0.4s;
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: hsl(214, 84%, 56%);
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+
+/* Status Badge Styles */
+.status-paid {
+  background-color: hsl(142, 76%, 36%, 0.1);
+  color: hsl(142, 76%, 36%);
+}
+
+.status-pending {
+  background-color: hsl(38, 92%, 50%, 0.1);
+  color: hsl(38, 92%, 50%);
+}
+
+.status-overdue {
+  background-color: hsl(0, 84%, 60%, 0.1);
+  color: hsl(0, 84%, 60%);
+}
+
+.status-vacant {
+  background-color: hsl(210, 16%, 82%, 0.1);
+  color: hsl(210, 11%, 46%);
+}
+
+/* Animation for loading states */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
