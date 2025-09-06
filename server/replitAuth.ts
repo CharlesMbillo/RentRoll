@@ -132,7 +132,7 @@ export async function setupAuth(app: Express) {
       console.log("Callback query params:", req.query);
       console.log("Callback session:", req.session);
       
-      passport.authenticate(`replitauth:${req.hostname}`, (err, user, info) => {
+      passport.authenticate(`replitauth:${req.hostname}`, (err: any, user: any, info: any) => {
         if (err) {
           console.error("Callback authentication error:", err);
           return res.redirect("/api/login");
@@ -145,7 +145,7 @@ export async function setupAuth(app: Express) {
         
         console.log("Callback authentication successful, logging in user:", user);
         
-        req.logIn(user, (loginErr) => {
+        req.logIn(user, (loginErr: any) => {
           if (loginErr) {
             console.error("Login error:", loginErr);
             return res.redirect("/api/login");
