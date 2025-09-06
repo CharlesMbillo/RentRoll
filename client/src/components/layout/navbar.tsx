@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bell, Building2, ChevronDown } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +13,11 @@ import type { User } from "@/lib/types";
 
 export default function Navbar() {
   const { user } = useAuth() as { user: User | null };
+  
+  // Fetch property data to show the actual property name
+  const { data: properties = [] } = useQuery<any[]>({
+    queryKey: ['/api/properties'],
+  });
 
   const handleLogout = () => {
     window.location.href = "/api/logout";
@@ -36,7 +42,7 @@ export default function Navbar() {
           </div>
           <span className="text-muted-foreground">|</span>
           <span className="text-sm text-muted-foreground" data-testid="text-property-name">
-             Block H
+            {properties[0]?.name || "Property"}
           </span>
         </div>
         
@@ -59,7 +65,7 @@ export default function Navbar() {
                 <Avatar className="w-8 h-8">
                   <AvatarImage src={user?.profileImageUrl || undefined} />
                   <AvatarFallback className="text-xs">
-                    {getInitials(user?.firstName, user?.lastName)}
+                    {getInitials(user?.firstName || undefined, user?.lastName || undefined)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="text-sm text-left">
