@@ -110,8 +110,15 @@ export async function setupAuth(app: Express) {
       passport.use(strategy);
     }
 
-    passport.serializeUser((user: Express.User, cb) => cb(null, user));
-    passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+    passport.serializeUser((user: Express.User, cb) => {
+      console.log("Serializing user:", user);
+      cb(null, user);
+    });
+    
+    passport.deserializeUser((user: Express.User, cb) => {
+      console.log("Deserializing user:", user);
+      cb(null, user);
+    });
 
     app.get("/api/login", (req, res, next) => {
       passport.authenticate(`replitauth:${req.hostname}`, {
@@ -122,10 +129,31 @@ export async function setupAuth(app: Express) {
 
     app.get("/api/callback", (req, res, next) => {
       console.log("Callback request for hostname:", req.hostname);
-      passport.authenticate(`replitauth:${req.hostname}`, {
-        successReturnToOrRedirect: "/",
-        failureRedirect: "/api/login",
-        failureFlash: false
+      console.log("Callback query params:", req.query);
+      console.log("Callback session:", req.session);
+      
+      passport.authenticate(`replitauth:${req.hostname}`, (err, user, info) => {
+        if (err) {
+          console.error("Callback authentication error:", err);
+          return res.redirect("/api/login");
+        }
+        
+        if (!user) {
+          console.error("Callback authentication failed - no user:", info);
+          return res.redirect("/api/login");
+        }
+        
+        console.log("Callback authentication successful, logging in user:", user);
+        
+        req.logIn(user, (loginErr) => {
+          if (loginErr) {
+            console.error("Login error:", loginErr);
+            return res.redirect("/api/login");
+          }
+          
+          console.log("User logged in successfully");
+          return res.redirect("/");
+        });
       })(req, res, next);
     });
 
@@ -147,29 +175,45 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  console.log("isAuthenticated check:");
+  console.log("- req.isAuthenticated():", req.isAuthenticated?.());
+  console.log("- req.user:", req.user);
+  console.log("- req.session:", req.session);
+  
   const user = req.user as any;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  if (!req.isAuthenticated() || !user) {
+    console.log("Authentication failed: not authenticated or no user");
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  if (!user.expires_at) {
+    console.log("Authentication failed: no expires_at");
     return res.status(401).json({ message: "Unauthorized" });
   }
 
   const now = Math.floor(Date.now() / 1000);
   if (now <= user.expires_at) {
+    console.log("Authentication successful: token valid");
     return next();
   }
 
   const refreshToken = user.refresh_token;
   if (!refreshToken) {
+    console.log("Authentication failed: no refresh token");
     res.status(401).json({ message: "Unauthorized" });
     return;
   }
 
   try {
+    console.log("Attempting token refresh");
     const config = await getOidcConfig();
     const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
     updateUserSession(user, tokenResponse);
+    console.log("Token refresh successful");
     return next();
   } catch (error) {
+    console.log("Token refresh failed:", error);
     res.status(401).json({ message: "Unauthorized" });
     return;
   }
