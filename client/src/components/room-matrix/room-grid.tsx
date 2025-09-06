@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import RoomCell from "./room-cell";
 
 interface RoomGridProps {
@@ -8,91 +9,86 @@ interface RoomGridProps {
 }
 
 interface Room {
-  id: number;
+  id: string;
   roomNumber: string;
   status: "paid" | "pending" | "overdue" | "vacant";
   floor: number;
   tenant?: string;
 }
 
-// Local tenant names for realistic data
-const localTenantNames = [
-  "James Kamau", "Mary Wanjiku", "Peter Mwangi", "Grace Nyambura", "John Kiprotich",
-  "Sarah Achieng", "David Waweru", "Faith Njeri", "Samuel Ochieng", "Rose Wanjiru",
-  "Michael Kiprop", "Lucy Waithera", "Daniel Otieno", "Jane Muthoni", "Kevin Mutua",
-  "Esther Akinyi", "Robert Kosgei", "Mercy Njoki", "Philip Kamunge", "Agnes Wangari",
-  "Francis Kibet", "Susan Wambui", "Joseph Karanja", "Catherine Adhiambo", "Emmanuel Ruto",
-  "Margaret Njoroge", "Thomas Muchiri", "Beatrice Chepkemoi", "Charles Maina", "Joyce Waceke",
-  "Anthony Musyoka", "Naomi Chebet", "Isaac Wamae", "Salome Nyawira", "Benjamin Kiptoo",
-  "Lydia Wangeci", "Stephen Kiprotich", "Monica Akoth", "Andrew Mbugua", "Priscilla Jelimo",
-  "Henry Wamalwa", "Alice Wanjiru", "Simon Kemboi", "Elizabeth Njambi", "Victor Onyango",
-  "Rebecca Kinya", "Moses Cheruiyot", "Violet Wangui", "Felix Ouma", "Teresa Mwende",
-  "Paul Macharia", "Gladys Chepchirchir", "Edwin Wafula", "Helen Gathoni", "Mark Kiplagat",
-  "Janet Wambua", "Geoffrey Langat", "Christine Wairumu", "Lawrence Omondi", "Eunice Wairimu",
-  "Brian Kipchumba", "Stella Mukiri", "Nicholas Mutiso", "Diana Aoko", "Collins Rotich",
-  "Linda Wamaitha", "Alex Machoka", "Winnie Chepkorir", "Ryan Kamotho", "Doris Wairimu",
-  "Ivan Kiplimo", "Pauline Waiguru", "Oscar Wekesa", "Mercy Wanjiku"
-];
-
-// Generate local room data with proper numbering system
-const generateRoomData = (): Room[] => {
-  const rooms: Room[] = [];
-  const statuses: Array<"paid" | "pending" | "overdue" | "vacant"> = ["paid", "pending", "overdue", "vacant"];
-  const statusWeights = [0.47, 0.20, 0.12, 0.21]; // 47% paid, 20% pending, 12% overdue, 21% vacant
-  const floorLetters = ['A', 'B', 'C']; // Ground, First, Second floors
-
-  function getRandomStatus(): "paid" | "pending" | "overdue" | "vacant" {
-    const random = Math.random();
-    let cumulativeWeight = 0;
-    for (let i = 0; i < statusWeights.length; i++) {
-      cumulativeWeight += statusWeights[i];
-      if (random <= cumulativeWeight) {
-        return statuses[i];
-      }
-    }
-    return statuses[0];
-  }
-
-  function getRandomTenant(): string {
-    const randomIndex = Math.floor(Math.random() * localTenantNames.length);
-    return localTenantNames[randomIndex];
-  }
-
-  let tenantIndex = 0;
+// Helper function to determine room payment status
+const getRoomStatus = (room: any, tenants: any[], payments: any[]): "paid" | "pending" | "overdue" | "vacant" => {
+  if (room.status === "vacant") return "vacant";
   
-  for (let floor = 0; floor < 3; floor++) {
-    const unitsPerFloor = floor === 2 ? 24 : 25; // Top floor has 24 units
-    
-    for (let unit = 1; unit <= unitsPerFloor; unit++) {
-      const roomNumber = `${floorLetters[floor]}${unit.toString().padStart(2, '0')}`;
-      const status = getRandomStatus();
-      let tenant = undefined;
-      
-      if (status !== "vacant" && tenantIndex < localTenantNames.length) {
-        tenant = localTenantNames[tenantIndex];
-        tenantIndex++;
-      }
-      
-      rooms.push({
-        id: floor * 25 + unit,
-        roomNumber,
-        status,
-        floor,
-        tenant,
-      });
-    }
-  }
-
-  return rooms;
+  // Find tenant for this room
+  const tenant = tenants.find(t => t.roomId === room.id);
+  if (!tenant) return "vacant";
+  
+  // Find current month payment for this room
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const payment = payments.find(p => p.roomId === room.id && p.month === currentMonth);
+  
+  if (!payment) return "pending";
+  
+  if (payment.paymentStatus === "completed") return "paid";
+  
+  // Check if overdue (past due date)
+  const now = new Date();
+  const dueDate = new Date(payment.dueDate);
+  if (dueDate < now) return "overdue";
+  
+  return "pending";
 };
 
 export default function RoomGrid({ searchTerm, statusFilter, floorFilter }: RoomGridProps) {
-  const rooms = useMemo(() => generateRoomData(), []);
+  // Fetch rooms data from API
+  const { data: rooms = [], isLoading: roomsLoading } = useQuery({
+    queryKey: ['/api/rooms/all'],
+    queryFn: async () => {
+      // Get the first property (we assume single property setup)
+      const propertiesResponse = await fetch('/api/properties');
+      const properties = await propertiesResponse.json();
+      
+      if (properties.length === 0) return [];
+      
+      const roomsResponse = await fetch(`/api/rooms/${properties[0].id}`);
+      return roomsResponse.json();
+    },
+  });
+
+  // Fetch tenants data
+  const { data: tenants = [], isLoading: tenantsLoading } = useQuery({
+    queryKey: ['/api/tenants'],
+  });
+
+  // Fetch payments data
+  const { data: payments = [], isLoading: paymentsLoading } = useQuery({
+    queryKey: ['/api/payments'],
+  });
+
+  // Transform backend data to frontend format
+  const transformedRooms = useMemo(() => {
+    if (roomsLoading || tenantsLoading || paymentsLoading) return [];
+    
+    return rooms.map((room: any): Room => {
+      const tenant = tenants.find((t: any) => t.roomId === room.id);
+      const status = getRoomStatus(room, tenants, payments);
+      
+      return {
+        id: room.id,
+        roomNumber: room.roomNumber,
+        status,
+        floor: room.floor || 1,
+        tenant: tenant ? `${tenant.firstName} ${tenant.lastName}` : undefined,
+      };
+    });
+  }, [rooms, tenants, payments, roomsLoading, tenantsLoading, paymentsLoading]);
 
   const filteredRooms = useMemo(() => {
-    return rooms.filter((room) => {
+    return transformedRooms.filter((room) => {
       const matchesSearch = searchTerm === "" || 
-        room.roomNumber.toLowerCase().includes(searchTerm.toLowerCase());
+        room.roomNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (room.tenant && room.tenant.toLowerCase().includes(searchTerm.toLowerCase()));
       
       const matchesStatus = statusFilter === "all" || room.status === statusFilter;
       
@@ -100,7 +96,18 @@ export default function RoomGrid({ searchTerm, statusFilter, floorFilter }: Room
 
       return matchesSearch && matchesStatus && matchesFloor;
     });
-  }, [rooms, searchTerm, statusFilter, floorFilter]);
+  }, [transformedRooms, searchTerm, statusFilter, floorFilter]);
+
+  if (roomsLoading || tenantsLoading || paymentsLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading room data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 
