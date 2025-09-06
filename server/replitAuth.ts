@@ -24,9 +24,16 @@ const getOidcConfig = memoize(
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
-  // Use memory store for now to fix authentication issues
+  const pgStore = connectPg(session);
+  const sessionStore = new pgStore({
+    conString: process.env.DATABASE_URL,
+    createTableIfMissing: false, // Table already exists
+    ttl: sessionTtl,
+    tableName: "sessions",
+  });
   return session({
     secret: process.env.SESSION_SECRET!,
+    store: sessionStore,
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -51,6 +58,7 @@ async function upsertUser(
   claims: any,
 ) {
   await storage.upsertUser({
+    id: claims["sub"],
     email: claims["email"],
     firstName: claims["first_name"],
     lastName: claims["last_name"],
