@@ -36,7 +36,7 @@ export default function Navbar() {
           </div>
           <span className="text-muted-foreground">|</span>
           <span className="text-sm text-muted-foreground" data-testid="text-property-name">
-            State House Block D
+            Block H
           </span>
         </div>
         
