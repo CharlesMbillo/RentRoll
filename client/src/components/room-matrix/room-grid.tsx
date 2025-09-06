@@ -14,6 +14,9 @@ interface Room {
   status: "paid" | "pending" | "overdue" | "vacant";
   floor: number;
   tenant?: string;
+  roomId?: string;
+  tenantId?: string;
+  amount?: string;
 }
 
 // Helper function to determine room payment status
@@ -80,6 +83,9 @@ export default function RoomGrid({ searchTerm, statusFilter, floorFilter }: Room
         status,
         floor: room.floor || 1,
         tenant: tenant ? `${tenant.firstName} ${tenant.lastName}` : undefined,
+        roomId: room.id,
+        tenantId: tenant?.id,
+        amount: room.rentAmount,
       };
     });
   }, [rooms, tenants, payments, roomsLoading, tenantsLoading, paymentsLoading]);
@@ -120,6 +126,9 @@ export default function RoomGrid({ searchTerm, statusFilter, floorFilter }: Room
           roomNumber={room.roomNumber}
           status={room.status}
           tenant={room.tenant}
+          roomId={room.roomId}
+          tenantId={room.tenantId}
+          amount={room.amount}
         />
       ))}
     </div>
