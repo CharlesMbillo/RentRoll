@@ -57,12 +57,12 @@ export default function RoomGrid({ searchTerm, statusFilter, floorFilter }: Room
   });
 
   // Fetch tenants data
-  const { data: tenants = [], isLoading: tenantsLoading } = useQuery({
+  const { data: tenants = [], isLoading: tenantsLoading } = useQuery<any[]>({
     queryKey: ['/api/tenants'],
   });
 
   // Fetch payments data
-  const { data: payments = [], isLoading: paymentsLoading } = useQuery({
+  const { data: payments = [], isLoading: paymentsLoading } = useQuery<any[]>({
     queryKey: ['/api/payments'],
   });
 
@@ -71,8 +71,8 @@ export default function RoomGrid({ searchTerm, statusFilter, floorFilter }: Room
     if (roomsLoading || tenantsLoading || paymentsLoading) return [];
     
     return rooms.map((room: any): Room => {
-      const tenant = tenants.find((t: any) => t.roomId === room.id);
-      const status = getRoomStatus(room, tenants, payments);
+      const tenant = (tenants as any[]).find((t: any) => t.roomId === room.id);
+      const status = getRoomStatus(room, tenants as any[], payments as any[]);
       
       return {
         id: room.id,
@@ -85,7 +85,7 @@ export default function RoomGrid({ searchTerm, statusFilter, floorFilter }: Room
   }, [rooms, tenants, payments, roomsLoading, tenantsLoading, paymentsLoading]);
 
   const filteredRooms = useMemo(() => {
-    return transformedRooms.filter((room) => {
+    return transformedRooms.filter((room: Room) => {
       const matchesSearch = searchTerm === "" || 
         room.roomNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (room.tenant && room.tenant.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -114,7 +114,7 @@ export default function RoomGrid({ searchTerm, statusFilter, floorFilter }: Room
       className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-14 gap-2"
       data-testid="room-grid"
     >
-      {filteredRooms.map((room) => (
+      {filteredRooms.map((room: Room) => (
         <RoomCell
           key={room.id}
           roomNumber={room.roomNumber}
