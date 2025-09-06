@@ -173,6 +173,7 @@ export const smsNotificationsRelations = relations(smsNotifications, ({ one }) =
 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
+  id: true,
   email: true,
   firstName: true,
   lastName: true,

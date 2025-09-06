@@ -6,24 +6,23 @@ import { insertTenantSchema, insertPaymentSchema, insertRoomSchema } from "@shar
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Temporary authentication bypass for testing
-  app.get('/api/auth/user', async (req: any, res) => {
-    // Return a mock user for now to allow testing
-    const mockUser = {
-      id: 'demo-user',
-      email: 'demo@rentflow.com',
-      firstName: 'Demo',
-      lastName: 'User',
-      role: 'landlord',
-      profileImageUrl: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    res.json(mockUser);
+  // Auth middleware
+  await setupAuth(app);
+
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
   });
 
   // Dashboard metrics
-  app.get('/api/dashboard/metrics', async (req, res) => {
+  app.get('/api/dashboard/metrics', isAuthenticated, async (req, res) => {
     try {
       const metrics = await storage.getDashboardMetrics();
       res.json(metrics);
@@ -34,7 +33,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Property routes
-  app.get('/api/properties', async (req, res) => {
+  app.get('/api/properties', isAuthenticated, async (req, res) => {
     try {
       const properties = await storage.getProperties();
       res.json(properties);
@@ -45,7 +44,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Room routes
-  app.get('/api/rooms/:propertyId', async (req, res) => {
+  app.get('/api/rooms/:propertyId', isAuthenticated, async (req, res) => {
     try {
       const { propertyId } = req.params;
       const rooms = await storage.getRoomsByProperty(propertyId);
@@ -56,7 +55,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/rooms', async (req, res) => {
+  app.post('/api/rooms', isAuthenticated, async (req, res) => {
     try {
       const roomData = insertRoomSchema.parse(req.body);
       const room = await storage.createRoom(roomData);
@@ -72,7 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Tenant routes
-  app.get('/api/tenants', async (req, res) => {
+  app.get('/api/tenants', isAuthenticated, async (req, res) => {
     try {
       const tenants = await storage.getTenants();
       res.json(tenants);
@@ -82,7 +81,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/tenants/:id', async (req, res) => {
+  app.get('/api/tenants/:id', isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
       const tenant = await storage.getTenant(id);
@@ -96,7 +95,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/tenants', async (req, res) => {
+  app.post('/api/tenants', isAuthenticated, async (req, res) => {
     try {
       const tenantData = insertTenantSchema.parse(req.body);
       const tenant = await storage.createTenant(tenantData);
@@ -111,7 +110,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/tenants/:id', async (req, res) => {
+  app.put('/api/tenants/:id', isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
       const tenantData = insertTenantSchema.partial().parse(req.body);
@@ -130,7 +129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/tenants/:id', async (req, res) => {
+  app.delete('/api/tenants/:id', isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
       const success = await storage.deleteTenant(id);
@@ -145,7 +144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Payment routes
-  app.get('/api/payments', async (req, res) => {
+  app.get('/api/payments', isAuthenticated, async (req, res) => {
     try {
       const payments = await storage.getPayments();
       res.json(payments);
@@ -155,7 +154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/payments/tenant/:tenantId', async (req, res) => {
+  app.get('/api/payments/tenant/:tenantId', isAuthenticated, async (req, res) => {
     try {
       const { tenantId } = req.params;
       const payments = await storage.getPaymentsByTenant(tenantId);
@@ -166,7 +165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/payments', async (req, res) => {
+  app.post('/api/payments', isAuthenticated, async (req, res) => {
     try {
       const paymentData = insertPaymentSchema.parse(req.body);
       const payment = await storage.createPayment(paymentData);
@@ -181,7 +180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/payments/:id', async (req, res) => {
+  app.put('/api/payments/:id', isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
       const paymentData = insertPaymentSchema.partial().parse(req.body);
@@ -201,7 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // M-Pesa STK Push
-  app.post('/api/mpesa/stk-push', async (req, res) => {
+  app.post('/api/mpesa/stk-push', isAuthenticated, async (req, res) => {
     try {
       const { phoneNumber, amount, roomId, tenantId } = req.body;
       
@@ -243,7 +242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // SMS Notification routes
-  app.get('/api/sms-notifications', async (req, res) => {
+  app.get('/api/sms-notifications', isAuthenticated, async (req, res) => {
     try {
       const notifications = await storage.getSmsNotifications();
       res.json(notifications);
@@ -253,7 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/sms-notifications', async (req, res) => {
+  app.post('/api/sms-notifications', isAuthenticated, async (req, res) => {
     try {
       const { tenantId, phoneNumber, message, messageType } = req.body;
       
@@ -284,7 +283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // System Settings routes
-  app.get('/api/settings', async (req, res) => {
+  app.get('/api/settings', isAuthenticated, async (req, res) => {
     try {
       const settings = await storage.getSystemSettings();
       res.json(settings);
@@ -294,7 +293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/settings/:key', async (req, res) => {
+  app.put('/api/settings/:key', isAuthenticated, async (req, res) => {
     try {
       const { key } = req.params;
       const { value, description } = req.body;
