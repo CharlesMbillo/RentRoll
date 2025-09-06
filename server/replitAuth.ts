@@ -60,10 +60,11 @@ async function upsertUser(
 }
 
 export async function setupAuth(app: Express) {
-  app.set("trust proxy", 1);
-  app.use(getSession());
-  app.use(passport.initialize());
-  app.use(passport.session());
+  try {
+    app.set("trust proxy", 1);
+    app.use(getSession());
+    app.use(passport.initialize());
+    app.use(passport.session());
 
   const config = await getOidcConfig();
 
@@ -71,10 +72,18 @@ export async function setupAuth(app: Express) {
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
   ) => {
-    const user = {};
-    updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
-    verified(null, user);
+    try {
+      const user = {};
+      updateUserSession(user, tokens);
+      const claims = tokens.claims();
+      console.log("User claims:", claims);
+      await upsertUser(claims);
+      console.log("User upserted successfully");
+      verified(null, user);
+    } catch (error) {
+      console.error("Error in verify function:", error);
+      verified(error);
+    }
   };
 
   const domains = process.env.REPLIT_DOMAINS!.split(",");
@@ -112,9 +121,11 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/callback", (req, res, next) => {
+    console.log("Callback request for hostname:", req.hostname);
     passport.authenticate(`replitauth:${req.hostname}`, {
       successReturnToOrRedirect: "/",
       failureRedirect: "/api/login",
+      failureFlash: false
     })(req, res, next);
   });
 
@@ -128,6 +139,11 @@ export async function setupAuth(app: Express) {
       );
     });
   });
+
+  } catch (error) {
+    console.error("Error in setupAuth:", error);
+    throw error;
+  }
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
