@@ -4,13 +4,16 @@ import fs from "fs";
 import path from "path";
 import { glob } from "glob";
 
-const CLIENT_DIR = "client";
+// Determine if we're running from root or client directory
+const isInClient = fs.existsSync("package.json") && fs.existsSync("src");
+const CLIENT_DIR = isInClient ? "." : "client";
 const CLIENT_PKG_PATH = path.join(CLIENT_DIR, "package.json");
 
 async function checkImports() {
   // Read client package.json
   if (!fs.existsSync(CLIENT_PKG_PATH)) {
-    console.error("❌ client/package.json not found");
+    console.error(`❌ ${CLIENT_PKG_PATH} not found`);
+    console.error("Run this script from the root directory or client directory");
     process.exit(1);
   }
 
