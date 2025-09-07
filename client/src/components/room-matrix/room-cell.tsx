@@ -1,19 +1,19 @@
-import { cn } from "@/lib/utils";
+import { cn } from "../../lib/utils";
 import { useState } from "react";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "../ui/tooltip";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+} from "../ui/dialog";
+import { Button } from "../ui/button";
 import { CreditCard } from "lucide-react";
-import QuickMpesaForm from "@/components/payments/quick-mpesa-form";
+import QuickMpesaForm from "../payments/quick-mpesa-form";
 
 interface RoomCellProps {
   roomNumber: string;

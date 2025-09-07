@@ -1,18 +1,18 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import MpesaForm from "@/components/payments/mpesa-form";
-import TransactionTable from "@/components/payments/transaction-table";
+} from "../components/ui/dialog";
+import MpesaForm from "../components/payments/mpesa-form";
+import TransactionTable from "../components/payments/transaction-table";
 import { Plus, CheckCircle, Clock, AlertCircle } from "lucide-react";
-import type { Payment } from "@/lib/types";
+import type { Payment } from "../lib/types";
 
 export default function Payments() {
   const [isMpesaDialogOpen, setIsMpesaDialogOpen] = useState(false);

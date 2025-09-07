@@ -1,7 +1,7 @@
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Badge } from "../ui/badge";
+import { Card } from "../ui/card";
 import { format } from "date-fns";
-import type { Payment } from "@/lib/types";
+import type { Payment } from "../../lib/types";
 
 interface TransactionTableProps {
   payments: Payment[];

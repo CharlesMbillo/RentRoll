@@ -1,11 +1,11 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import MetricsCards from "@/components/dashboard/metrics-cards";
-import RoomStatusOverview from "@/components/dashboard/room-status-overview";
+import { useToast } from "../hooks/use-toast";
+import { isUnauthorizedError } from "../lib/authUtils";
+import MetricsCards from "../components/dashboard/metrics-cards";
+import RoomStatusOverview from "../components/dashboard/room-status-overview";
 import { BarChart3 } from "lucide-react";
-import type { DashboardMetrics } from "@/lib/types";
+import type { DashboardMetrics } from "../lib/types";
 
 export default function Dashboard() {
   const { toast } = useToast();

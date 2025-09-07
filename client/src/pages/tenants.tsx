@@ -1,26 +1,26 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Card, CardContent } from "../components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "../components/ui/select";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import TenantTable from "@/components/tenants/tenant-table";
-import TenantForm from "@/components/tenants/tenant-form";
+} from "../components/ui/dialog";
+import TenantTable from "../components/tenants/tenant-table";
+import TenantForm from "../components/tenants/tenant-form";
 import { Plus, Download } from "lucide-react";
-import type { Tenant } from "@/lib/types";
+import type { Tenant } from "../lib/types";
 
 export default function Tenants() {
   const [searchTerm, setSearchTerm] = useState("");

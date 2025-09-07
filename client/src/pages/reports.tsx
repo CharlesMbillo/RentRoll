@@ -1,16 +1,16 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "../components/ui/select";
 import { BarChart3, Download, TrendingUp, Calendar } from "lucide-react";
-import type { DashboardMetrics } from "@/lib/types";
+import type { DashboardMetrics } from "../lib/types";
 
 export default function Reports() {
   const [reportType, setReportType] = useState("revenue");
