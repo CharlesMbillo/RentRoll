@@ -102,7 +102,7 @@ export default function RoomMatrix() {
       {/* Room Grid */}
       <Card>
         <CardHeader>
-          <CardTitle>State House Block D - 74 Units</CardTitle>
+          <CardTitle> Block H - 74 Units</CardTitle>
         </CardHeader>
         <CardContent>
           <RoomGrid 
