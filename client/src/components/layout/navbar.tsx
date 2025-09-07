@@ -42,8 +42,7 @@ export default function Navbar() {
           </div>
           <span className="text-muted-foreground">|</span>
           <span className="text-sm text-muted-foreground" data-testid="text-property-name">
-            {properties[0]?.name || "Property"}
-              Block H
+            {properties[0]?.name || "Property Block H"}
           </span>
         </div>
         
