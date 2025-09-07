@@ -1,0 +1,38 @@
+[22:58:42.662] Running build in Washington, D.C., USA (East) – iad1
+[22:58:42.662] Build machine configuration: 2 cores, 8 GB
+[22:58:42.685] Cloning github.com/CharlesMbillo/RentRoll (Branch: main, Commit: 72671d2)
+[22:58:42.831] Previous build caches not available
+[22:58:42.986] Cloning completed: 301.000ms
+[22:58:43.306] Running "vercel build"
+[22:58:43.689] Vercel CLI 47.0.5
+[22:58:43.868] WARN! Due to `builds` existing in your configuration file, the Build and Development Settings defined in your Project Settings will not apply. Learn More: https://vercel.link/unused-build-settings
+[22:58:44.999] Installing dependencies...
+[22:58:52.880] 
+[22:58:52.881] added 334 packages in 8s
+[22:58:52.881] 
+[22:58:52.882] 48 packages are looking for funding
+[22:58:52.882]   run `npm fund` for details
+[22:58:52.951] Running "npm run build"
+[22:58:53.062] 
+[22:58:53.063] > rentflow-client@0.0.0 build
+[22:58:53.063] > vite build
+[22:58:53.064] 
+[22:58:53.293] [36mvite v5.4.19 [32mbuilding for production...[36m[39m
+[22:58:53.346] transforming...
+[22:58:54.537] src/components/ui/tooltip.tsx (1:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+[22:58:54.538] src/components/ui/tooltip.tsx (1:0): Module level directives cause errors when bundled, "use client" in "src/components/ui/tooltip.tsx" was ignored.
+[22:58:54.580] [32m✓[39m 42 modules transformed.
+[22:58:54.585] [31mx[39m Build failed in 1.27s
+[22:58:54.586] [31merror during build:
+[22:58:54.586] [31m[vite]: Rollup failed to resolve import "zod" from "/vercel/path0/client/src/pages/settings.tsx".
+[22:58:54.586] This is most likely unintended because it can break your application at runtime.
+[22:58:54.586] If you do want to externalize this module explicitly add it to
+[22:58:54.587] `build.rollupOptions.external`[31m
+[22:58:54.587]     at viteWarn (file:///vercel/path0/client/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:65839:17)
+[22:58:54.587]     at onRollupWarning (file:///vercel/path0/client/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:65871:5)
+[22:58:54.587]     at onwarn (file:///vercel/path0/client/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:65534:7)
+[22:58:54.587]     at file:///vercel/path0/client/node_modules/rollup/dist/es/shared/node-entry.js:20925:13
+[22:58:54.587]     at Object.logger [as onLog] (file:///vercel/path0/client/node_modules/rollup/dist/es/shared/node-entry.js:22797:9)
+[22:58:54.588]     at ModuleLoader.handleInvalidResolvedId (file:///vercel/path0/client/node_modules/rollup/dist/es/shared/node-entry.js:21541:26)
+[22:58:54.588]     at file:///vercel/path0/client/node_modules/rollup/dist/es/shared/node-entry.js:21499:26[39m
+[22:58:54.604] Error: Command "npm run build" exited with 1
