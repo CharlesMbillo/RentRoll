@@ -1,0 +1,37 @@
+[22:38:49.129] Running build in Washington, D.C., USA (East) – iad1
+[22:38:49.131] Build machine configuration: 2 cores, 8 GB
+[22:38:49.195] Cloning github.com/CharlesMbillo/RentRoll (Branch: main, Commit: cb55fae)
+[22:38:49.650] Previous build caches not available
+[22:38:50.111] Cloning completed: 911.000ms
+[22:38:51.303] Running "vercel build"
+[22:38:51.886] Vercel CLI 47.0.5
+[22:38:52.076] WARN! Due to `builds` existing in your configuration file, the Build and Development Settings defined in your Project Settings will not apply. Learn More: https://vercel.link/unused-build-settings
+[22:38:52.682] Installing dependencies...
+[22:39:00.955] 
+[22:39:00.955] added 334 packages in 8s
+[22:39:00.955] 
+[22:39:00.955] 48 packages are looking for funding
+[22:39:00.956]   run `npm fund` for details
+[22:39:01.045] Running "npm run build"
+[22:39:01.297] 
+[22:39:01.298] > rentflow-client@0.0.0 build
+[22:39:01.298] > vite build
+[22:39:01.298] 
+[22:39:01.557] [36mvite v5.4.19 [32mbuilding for production...[36m[39m
+[22:39:01.614] transforming...
+[22:39:02.613] [32m✓[39m 4 modules transformed.
+[22:39:02.620] [31mx[39m Build failed in 1.04s
+[22:39:02.621] [31merror during build:
+[22:39:02.621] [31m[vite:css] [postcss] /vercel/path0/client/src/index.css:1:1: The `bg-background` class does not exist. If `bg-background` is a custom class, make sure it is defined within a `@layer` directive.[31m
+[22:39:02.621] file: [36m/vercel/path0/client/src/index.css:1:0[31m
+[22:39:02.621]     at Input.error (/vercel/path0/client/node_modules/postcss/lib/input.js:135:16)
+[22:39:02.621]     at AtRule.error (/vercel/path0/client/node_modules/postcss/lib/node.js:146:32)
+[22:39:02.621]     at processApply (/vercel/path0/client/node_modules/tailwindcss/lib/lib/expandApplyAtRules.js:380:29)
+[22:39:02.621]     at /vercel/path0/client/node_modules/tailwindcss/lib/lib/expandApplyAtRules.js:551:9
+[22:39:02.621]     at /vercel/path0/client/node_modules/tailwindcss/lib/processTailwindFeatures.js:55:50
+[22:39:02.621]     at async plugins (/vercel/path0/client/node_modules/tailwindcss/lib/plugin.js:38:17)
+[22:39:02.622]     at async LazyResult.runAsync (/vercel/path0/client/node_modules/postcss/lib/lazy-result.js:293:11)
+[22:39:02.622]     at async compileCSS (file:///vercel/path0/client/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:36898:21)
+[22:39:02.622]     at async Object.transform (file:///vercel/path0/client/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:36171:11)
+[22:39:02.622]     at async transform (file:///vercel/path0/client/node_modules/rollup/dist/es/shared/node-entry.js:21113:16)[39m
+[22:39:02.641] Error: Command "npm run build" exited with 1
