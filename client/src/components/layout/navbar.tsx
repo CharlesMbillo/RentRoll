@@ -1,6 +1,6 @@
-import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "../../hooks/useAuth";
+import { Button } from "../ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Bell, Building2, ChevronDown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -8,8 +8,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import type { User } from "@/lib/types";
+} from "../ui/dropdown-menu";
+import type { User } from "../../lib/types";
 
 export default function Navbar() {
   const { user } = useAuth() as { user: User | null };
