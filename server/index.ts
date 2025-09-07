@@ -1,5 +1,6 @@
-import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
+import { createServer } from "http";
+import { HttpRouter, createLoggingMiddleware, createJsonMiddleware } from "./http-router";
+import { setupApiRoutes } from "./api-routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 // Handle unhandled promise rejections
@@ -12,58 +13,36 @@ process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
 });
 
-const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+(async () => {
+  // Create HTTP router
+  const router = new HttpRouter();
 
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+  // Add middlewares
+  router.use(createJsonMiddleware());
+  router.use(createLoggingMiddleware());
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
+  // Setup API routes
+  await setupApiRoutes(router);
 
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+  // Create HTTP server
+  const server = createServer(async (req, res) => {
+    try {
+      await router.handle(req, res);
+    } catch (error) {
+      console.error('Server error:', error);
+      if (!res.writableEnded) {
+        res.statusCode = 500;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ message: 'Internal Server Error' }));
       }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
     }
   });
 
-  next();
-});
-
-(async () => {
-  const server = await registerRoutes(app);
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
+  // Setup Vite in development or serve static files in production
+  if (process.env.NODE_ENV === "development") {
+    await setupVite(router as any, server);
   } else {
-    serveStatic(app);
+    serveStatic(router as any);
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
@@ -71,11 +50,7 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
+  server.listen(port, "0.0.0.0", () => {
     log(`serving on port ${port}`);
   });
 })();
