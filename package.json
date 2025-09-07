@@ -44,7 +44,6 @@
     "@stripe/stripe-js": "^7.9.0",
     "@tanstack/react-query": "^5.60.5",
     "@types/axios": "^0.9.36",
-    "@types/memoizee": "^0.4.12",
     "axios": "^1.11.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
