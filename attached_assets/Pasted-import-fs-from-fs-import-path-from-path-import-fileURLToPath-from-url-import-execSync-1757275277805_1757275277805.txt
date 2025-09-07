@@ -1,0 +1,88 @@
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { execSync } from "child_process";
+
+// Resolve __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const SRC_DIR = path.join(__dirname, "..", "src");
+const PKG_PATH = path.join(__dirname, "..", "package.json");
+
+// Read package.json
+const pkg = JSON.parse(fs.readFileSync(PKG_PATH, "utf8"));
+const installedDeps = new Set([
+  ...Object.keys(pkg.dependencies || {}),
+  ...Object.keys(pkg.devDependencies || {})
+]);
+
+// Utility: recursively get all files
+function getAllFiles(dir, extList, files = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const res = path.resolve(dir, entry.name);
+    if (entry.isDirectory()) {
+      getAllFiles(res, extList, files);
+    } else if (extList.some(ext => res.endsWith(ext))) {
+      files.push(res);
+    }
+  }
+  return files;
+}
+
+// Extract imports from file
+function getImports(filePath) {
+  const content = fs.readFileSync(filePath, "utf8");
+  const regex = /import\s+(?:[^'"]+\s+from\s+)?["']([^"']+)["']/g;
+  const matches = [];
+  let m;
+  while ((m = regex.exec(content)) !== null) {
+    const imp = m[1];
+    if (!imp.startsWith(".") && !imp.startsWith("/")) {
+      const pkgName = imp.split("/")[0].startsWith("@")
+        ? imp.split("/").slice(0, 2).join("/")
+        : imp.split("/")[0];
+      matches.push(pkgName);
+    }
+  }
+  return matches;
+}
+
+// Collect imports
+const files = getAllFiles(SRC_DIR, [".js", ".jsx", ".ts", ".tsx"]);
+const allImports = new Set();
+files.forEach(f => {
+  getImports(f).forEach(i => allImports.add(i));
+});
+
+// Compare
+const missing = [];
+for (const dep of allImports) {
+  if (!installedDeps.has(dep)) {
+    missing.push(dep);
+  }
+}
+
+// CLI args
+const args = process.argv.slice(2);
+const checkOnly = args.includes("--check-only");
+
+if (missing.length > 0) {
+  console.log("❌ Missing dependencies:");
+  missing.forEach(dep => console.log(" -", dep));
+
+  if (checkOnly) {
+    console.log("\nℹ️ Run without --check-only to auto-install.");
+  } else {
+    console.log("\n📦 Installing missing dependencies...");
+    try {
+      execSync(`npm install ${missing.join(" ")}`, { stdio: "inherit" });
+      console.log("\n✅ All missing dependencies installed!");
+    } catch (err) {
+      console.error("⚠️ Failed to install dependencies automatically. Run manually:");
+      console.error(`npm install ${missing.join(" ")}`);
+    }
+  }
+} else {
+  console.log("✅ All imports have matching installed dependencies!");
+}
