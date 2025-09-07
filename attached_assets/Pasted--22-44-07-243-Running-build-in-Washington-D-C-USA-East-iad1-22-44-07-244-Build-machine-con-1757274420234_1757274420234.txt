@@ -1,0 +1,48 @@
+[22:44:07.243] Running build in Washington, D.C., USA (East) – iad1
+[22:44:07.244] Build machine configuration: 2 cores, 8 GB
+[22:44:07.262] Cloning github.com/CharlesMbillo/RentRoll (Branch: main, Commit: 72671d2)
+[22:44:07.397] Previous build caches not available
+[22:44:07.554] Cloning completed: 291.000ms
+[22:44:07.905] Running "vercel build"
+[22:44:08.320] Vercel CLI 47.0.5
+[22:44:08.497] WARN! Due to `builds` existing in your configuration file, the Build and Development Settings defined in your Project Settings will not apply. Learn More: https://vercel.link/unused-build-settings
+[22:44:09.382] Installing dependencies...
+[22:44:17.657] 
+[22:44:17.658] added 334 packages in 8s
+[22:44:17.658] 
+[22:44:17.659] 48 packages are looking for funding
+[22:44:17.659]   run `npm fund` for details
+[22:44:17.722] Running "npm run build"
+[22:44:17.837] 
+[22:44:17.838] > rentflow-client@0.0.0 build
+[22:44:17.839] > vite build
+[22:44:17.839] 
+[22:44:18.073] [36mvite v5.4.19 [32mbuilding for production...[36m[39m
+[22:44:18.127] transforming...
+[22:44:19.335] node_modules/@tanstack/react-query/build/modern/useQueries.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/useQueries.js" was ignored.
+[22:44:19.339] node_modules/@tanstack/react-query/build/modern/useQuery.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/useQuery.js" was ignored.
+[22:44:19.341] node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js" was ignored.
+[22:44:19.343] node_modules/@tanstack/react-query/build/modern/HydrationBoundary.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/HydrationBoundary.js" was ignored.
+[22:44:19.344] node_modules/@tanstack/react-query/build/modern/QueryErrorResetBoundary.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/QueryErrorResetBoundary.js" was ignored.
+[22:44:19.346] node_modules/@tanstack/react-query/build/modern/useIsFetching.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/useIsFetching.js" was ignored.
+[22:44:19.347] node_modules/@tanstack/react-query/build/modern/useMutationState.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/useMutationState.js" was ignored.
+[22:44:19.347] node_modules/@tanstack/react-query/build/modern/useMutation.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/useMutation.js" was ignored.
+[22:44:19.348] node_modules/@tanstack/react-query/build/modern/useInfiniteQuery.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/useInfiniteQuery.js" was ignored.
+[22:44:19.349] node_modules/@tanstack/react-query/build/modern/IsRestoringProvider.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/IsRestoringProvider.js" was ignored.
+[22:44:19.391] src/components/ui/tooltip.tsx (1:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+[22:44:19.392] src/components/ui/tooltip.tsx (1:0): Module level directives cause errors when bundled, "use client" in "src/components/ui/tooltip.tsx" was ignored.
+[22:44:19.404] [32m✓[39m 45 modules transformed.
+[22:44:19.409] [31mx[39m Build failed in 1.31s
+[22:44:19.409] [31merror during build:
+[22:44:19.409] [31m[vite]: Rollup failed to resolve import "zod" from "/vercel/path0/client/src/pages/settings.tsx".
+[22:44:19.409] This is most likely unintended because it can break your application at runtime.
+[22:44:19.409] If you do want to externalize this module explicitly add it to
+[22:44:19.409] `build.rollupOptions.external`[31m
+[22:44:19.409]     at viteWarn (file:///vercel/path0/client/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:65839:17)
+[22:44:19.409]     at onRollupWarning (file:///vercel/path0/client/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:65871:5)
+[22:44:19.410]     at onwarn (file:///vercel/path0/client/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:65534:7)
+[22:44:19.410]     at file:///vercel/path0/client/node_modules/rollup/dist/es/shared/node-entry.js:20925:13
+[22:44:19.410]     at Object.logger [as onLog] (file:///vercel/path0/client/node_modules/rollup/dist/es/shared/node-entry.js:22797:9)
+[22:44:19.410]     at ModuleLoader.handleInvalidResolvedId (file:///vercel/path0/client/node_modules/rollup/dist/es/shared/node-entry.js:21541:26)
+[22:44:19.410]     at file:///vercel/path0/client/node_modules/rollup/dist/es/shared/node-entry.js:21499:26[39m
+[22:44:19.428] Error: Command "npm run build" exited with 1
