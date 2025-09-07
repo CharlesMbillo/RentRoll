@@ -243,42 +243,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // M-Pesa STK Push
+  // JengaAPI M-Pesa STK Push
   app.post('/api/mpesa/stk-push', async (req, res) => {
     try {
       const { phoneNumber, amount, roomId, tenantId } = req.body;
       
       // Validate required fields
-      if (!phoneNumber || !amount || !roomId || !tenantId) {
+      if (!phoneNumber || !amount || !tenantId) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
-      // TODO: Implement actual M-Pesa STK Push integration
-      // For now, create a pending payment record
+      // Get tenant and room details
+      const tenant = await storage.getTenant(tenantId);
+      const room = roomId ? await storage.getRoom(roomId) : null;
+
+      if (!tenant) {
+        return res.status(404).json({ message: "Tenant not found" });
+      }
+
+      // Create payment record first
       const currentDate = new Date();
       const month = currentDate.toISOString().slice(0, 7);
       const year = currentDate.getFullYear();
+      const reference = `RENT-${roomId || 'PAYMENT'}-${Date.now()}`;
 
       const paymentData = {
         tenantId,
-        roomId,
+        roomId: roomId || null,
         amount: amount.toString(),
         paymentMethod: "mpesa" as const,
         paymentStatus: "pending" as const,
         dueDate: currentDate,
         month,
         year,
-        notes: `STK Push initiated to ${phoneNumber}`,
+        notes: `STK Push initiated to ${phoneNumber} for ${tenant.firstName} ${tenant.lastName}`,
       };
 
       const payment = await storage.createPayment(paymentData);
-      
-      res.json({
-        success: true,
-        message: "STK Push initiated successfully",
-        paymentId: payment.id,
-        // In real implementation, you would return M-Pesa response
-      });
+
+      // If JengaAPI is configured, send actual STK Push
+      if (process.env.JENGA_API_KEY && process.env.JENGA_MERCHANT_CODE && process.env.JENGA_CONSUMER_SECRET) {
+        try {
+          const { createJengaApiClient } = await import('./services/jengaApi');
+          const jengaClient = createJengaApiClient();
+          
+          const description = room 
+            ? `Rent payment for Room ${room.roomNumber}` 
+            : `Payment from ${tenant.firstName} ${tenant.lastName}`;
+
+          const jengaResponse = await jengaClient.sendMpesaSTKPush(
+            phoneNumber,
+            amount,
+            reference,
+            description
+          );
+
+          // Update payment with JengaAPI transaction ID
+          await storage.updatePayment(payment.id, {
+            notes: `${paymentData.notes} - JengaAPI Transaction: ${jengaResponse.transactionId}`,
+          });
+
+          res.json({
+            success: true,
+            message: "STK Push sent successfully",
+            paymentId: payment.id,
+            transactionId: jengaResponse.transactionId,
+            reference: reference,
+          });
+        } catch (jengaError: any) {
+          console.error("JengaAPI STK Push failed:", jengaError);
+          
+          // Update payment status to failed
+          await storage.updatePayment(payment.id, {
+            paymentStatus: "failed",
+            notes: `${paymentData.notes} - JengaAPI Error: ${jengaError.message}`,
+          });
+
+          res.status(500).json({ 
+            message: "Payment request failed",
+            paymentId: payment.id,
+            error: "STK Push could not be processed"
+          });
+        }
+      } else {
+        // Development mode - simulate successful STK Push
+        res.json({
+          success: true,
+          message: "STK Push initiated successfully (Development Mode)",
+          paymentId: payment.id,
+          reference: reference,
+          note: "JengaAPI credentials not configured - using development mode"
+        });
+      }
     } catch (error) {
       console.error("Error initiating STK Push:", error);
       res.status(500).json({ message: "Failed to initiate STK Push" });
@@ -356,6 +412,175 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating system setting:", error);
       res.status(500).json({ message: "Failed to update system setting" });
+    }
+  });
+
+  // JengaAPI Webhook/Callback endpoint
+  app.post('/api/jenga/webhook', async (req, res) => {
+    try {
+      const callbackData = req.body;
+      console.log('JengaAPI Webhook received:', callbackData);
+
+      // Verify the callback is legitimate
+      if (process.env.JENGA_API_KEY && process.env.JENGA_MERCHANT_CODE && process.env.JENGA_CONSUMER_SECRET) {
+        const { createJengaApiClient } = await import('./services/jengaApi');
+        const jengaClient = createJengaApiClient();
+        
+        const isValid = await jengaClient.verifyPaymentCallback(callbackData);
+        if (!isValid) {
+          return res.status(400).json({ message: "Invalid callback signature" });
+        }
+      }
+
+      // Process payment status update
+      if (callbackData.transactionId && callbackData.status) {
+        // Find payment by transaction reference or notes containing transaction ID
+        const payments = await storage.getPayments();
+        const payment = payments.find(p => 
+          p.notes?.includes(callbackData.transactionId) ||
+          p.notes?.includes(callbackData.reference)
+        );
+
+        if (payment) {
+          const newStatus = callbackData.status === 'SUCCESS' || callbackData.status === 'COMPLETED' 
+            ? 'completed' 
+            : callbackData.status === 'FAILED' 
+            ? 'failed' 
+            : 'pending';
+
+          await storage.updatePayment(payment.id, {
+            paymentStatus: newStatus as any,
+            paidDate: newStatus === 'completed' ? new Date() : null,
+            mpesaTransactionId: callbackData.transactionId,
+            mpesaReceiptNumber: callbackData.receiptNumber || null,
+            notes: `${payment.notes} - Status updated via webhook: ${callbackData.status}`,
+          });
+
+          console.log(`Payment ${payment.id} status updated to ${newStatus}`);
+        }
+      }
+
+      res.json({ success: true, message: "Webhook processed" });
+    } catch (error) {
+      console.error("Error processing JengaAPI webhook:", error);
+      res.status(500).json({ message: "Failed to process webhook" });
+    }
+  });
+
+  // JengaAPI Status Check endpoint
+  app.get('/api/jenga/payment-status/:transactionId', async (req, res) => {
+    try {
+      const { transactionId } = req.params;
+
+      if (process.env.JENGA_API_KEY && process.env.JENGA_MERCHANT_CODE && process.env.JENGA_CONSUMER_SECRET) {
+        const { createJengaApiClient } = await import('./services/jengaApi');
+        const jengaClient = createJengaApiClient();
+        
+        const status = await jengaClient.getPaymentStatus(transactionId);
+        res.json(status);
+      } else {
+        res.json({ 
+          status: 'PENDING',
+          message: 'JengaAPI not configured - development mode',
+          transactionId 
+        });
+      }
+    } catch (error) {
+      console.error("Error checking payment status:", error);
+      res.status(500).json({ message: "Failed to check payment status" });
+    }
+  });
+
+  // JengaAPI Account Balance endpoint
+  app.get('/api/jenga/balance/:accountNumber?', async (req, res) => {
+    try {
+      const accountNumber = req.params.accountNumber || process.env.JENGA_MERCHANT_CODE;
+
+      if (!accountNumber) {
+        return res.status(400).json({ message: "Account number required" });
+      }
+
+      if (process.env.JENGA_API_KEY && process.env.JENGA_MERCHANT_CODE && process.env.JENGA_CONSUMER_SECRET) {
+        const { createJengaApiClient } = await import('./services/jengaApi');
+        const jengaClient = createJengaApiClient();
+        
+        const balance = await jengaClient.getAccountBalance(accountNumber);
+        res.json(balance);
+      } else {
+        res.json({ 
+          accountNumber,
+          currency: 'KES',
+          balances: {
+            available: '0.00',
+            actual: '0.00'
+          },
+          message: 'JengaAPI not configured - development mode'
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching account balance:", error);
+      res.status(500).json({ message: "Failed to fetch account balance" });
+    }
+  });
+
+  // JengaAPI Health Check endpoint
+  app.get('/api/jenga/health', async (req, res) => {
+    try {
+      if (process.env.JENGA_API_KEY && process.env.JENGA_MERCHANT_CODE && process.env.JENGA_CONSUMER_SECRET) {
+        const { createJengaApiClient } = await import('./services/jengaApi');
+        const jengaClient = createJengaApiClient();
+        
+        const isHealthy = await jengaClient.healthCheck();
+        res.json({ 
+          status: isHealthy ? 'healthy' : 'unhealthy',
+          timestamp: new Date().toISOString(),
+          configured: true 
+        });
+      } else {
+        res.json({ 
+          status: 'not_configured',
+          message: 'JengaAPI credentials not configured',
+          timestamp: new Date().toISOString(),
+          configured: false 
+        });
+      }
+    } catch (error) {
+      console.error("Error checking JengaAPI health:", error);
+      res.status(500).json({ 
+        status: 'error',
+        message: 'Health check failed',
+        timestamp: new Date().toISOString() 
+      });
+    }
+  });
+
+  // KYC Verification endpoint
+  app.post('/api/jenga/verify-kyc', async (req, res) => {
+    try {
+      const { nationalId, firstName, lastName } = req.body;
+
+      if (!nationalId || !firstName || !lastName) {
+        return res.status(400).json({ message: "National ID, first name and last name are required" });
+      }
+
+      if (process.env.JENGA_API_KEY && process.env.JENGA_MERCHANT_CODE && process.env.JENGA_CONSUMER_SECRET) {
+        const { createJengaApiClient } = await import('./services/jengaApi');
+        const jengaClient = createJengaApiClient();
+        
+        const verification = await jengaClient.verifyKYC(nationalId, firstName, lastName);
+        res.json(verification);
+      } else {
+        res.json({ 
+          verified: true,
+          message: 'JengaAPI not configured - development mode accepts all KYC',
+          nationalId,
+          firstName,
+          lastName
+        });
+      }
+    } catch (error) {
+      console.error("Error verifying KYC:", error);
+      res.status(500).json({ message: "Failed to verify KYC" });
     }
   });
 
