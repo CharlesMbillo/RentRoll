@@ -12,11 +12,11 @@ export default defineConfig({
       "@assets": path.resolve(__dirname, "../attached_assets"),
     },
   },
+  // GitHub Pages serves from root or /docs, so we need relative paths
+  base: './',
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    // GitHub Pages serves from root or /docs, so we need relative paths
-    base: './',
   },
   server: {
     port: 3000,
