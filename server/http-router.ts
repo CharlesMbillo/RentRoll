@@ -166,8 +166,18 @@ export class HttpRouter {
 
       // Run middlewares
       for (const middleware of this.middlewares) {
-        await middleware(enhancedReq, enhancedRes);
-        if (enhancedRes.writableEnded) return;
+        if (typeof middleware === 'function') {
+          try {
+            await middleware(enhancedReq, enhancedRes);
+            if (enhancedRes.writableEnded) return;
+          } catch (middlewareError) {
+            console.error('Middleware error:', middlewareError);
+            if (!enhancedRes.writableEnded) {
+              enhancedRes.status(500).json({ message: 'Middleware error' });
+              return;
+            }
+          }
+        }
       }
 
       // Find matching route
@@ -178,13 +188,23 @@ export class HttpRouter {
         const match = this.matchRoute(route, method, path);
         if (match) {
           enhancedReq.params = match.params;
-          await route.handler(enhancedReq, enhancedRes);
-          return;
+          try {
+            await route.handler(enhancedReq, enhancedRes);
+            return;
+          } catch (routeError) {
+            console.error('Route handler error:', routeError);
+            if (!enhancedRes.writableEnded) {
+              enhancedRes.status(500).json({ message: 'Route handler error' });
+              return;
+            }
+          }
         }
       }
 
       // No route found
-      enhancedRes.status(404).json({ message: 'Route not found' });
+      if (!enhancedRes.writableEnded) {
+        enhancedRes.status(404).json({ message: 'Route not found' });
+      }
     } catch (error) {
       console.error('Router error:', error);
       if (!res.writableEnded) {

@@ -1,3 +1,4 @@
+import express from "express";
 import { createServer } from "http";
 import { HttpRouter, createLoggingMiddleware, createJsonMiddleware } from "./http-router";
 import { setupApiRoutes } from "./api-routes";
@@ -14,7 +15,7 @@ process.on('uncaughtException', (error) => {
 });
 
 (async () => {
-  // Create HTTP router
+  // Create HTTP router for API routes
   const router = new HttpRouter();
 
   // Add middlewares
@@ -24,10 +25,19 @@ process.on('uncaughtException', (error) => {
   // Setup API routes
   await setupApiRoutes(router);
 
-  // Create HTTP server
+  // Create Express app for Vite compatibility
+  const app = express();
+
+  // Create HTTP server with hybrid routing
   const server = createServer(async (req, res) => {
     try {
-      await router.handle(req, res);
+      // Handle API routes with custom router
+      if (req.url?.startsWith('/api')) {
+        await router.handle(req, res);
+      } else {
+        // Handle static files and frontend with Express/Vite
+        app(req, res);
+      }
     } catch (error) {
       console.error('Server error:', error);
       if (!res.writableEnded) {
@@ -40,9 +50,9 @@ process.on('uncaughtException', (error) => {
 
   // Setup Vite in development or serve static files in production
   if (process.env.NODE_ENV === "development") {
-    await setupVite(router as any, server);
+    await setupVite(app, server);
   } else {
-    serveStatic(router as any);
+    serveStatic(app);
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
