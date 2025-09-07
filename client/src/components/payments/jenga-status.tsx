@@ -4,13 +4,30 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, AlertCircle, Wifi, WifiOff } from "lucide-react";
 
+interface HealthStatus {
+  status: 'healthy' | 'unhealthy' | 'not_configured' | 'error';
+  configured: boolean;
+  timestamp?: string;
+  message?: string;
+}
+
+interface BalanceData {
+  accountNumber: string;
+  currency: string;
+  balances: {
+    available: string;
+    actual: string;
+  };
+  message?: string;
+}
+
 export default function JengaStatus() {
-  const { data: healthStatus, isLoading, refetch } = useQuery({
+  const { data: healthStatus, isLoading, refetch } = useQuery<HealthStatus>({
     queryKey: ['/api/jenga/health'],
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
-  const { data: balance } = useQuery({
+  const { data: balance } = useQuery<BalanceData>({
     queryKey: ['/api/jenga/balance'],
     enabled: healthStatus?.configured === true,
   });
@@ -31,12 +48,12 @@ export default function JengaStatus() {
     return "Unknown";
   };
 
-  const getStatusColor = () => {
-    if (isLoading) return "yellow";
-    if (!healthStatus?.configured) return "gray";
-    if (healthStatus.status === 'healthy') return "green";
-    if (healthStatus.status === 'unhealthy') return "red";
-    return "blue";
+  const getStatusColor = (): "default" | "secondary" | "destructive" | "outline" => {
+    if (isLoading) return "outline";
+    if (!healthStatus?.configured) return "secondary";
+    if (healthStatus.status === 'healthy') return "default";
+    if (healthStatus.status === 'unhealthy') return "destructive";
+    return "outline";
   };
 
   return (
@@ -48,7 +65,7 @@ export default function JengaStatus() {
             JengaAPI Status
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant={getStatusColor() as any}>
+            <Badge variant={getStatusColor()}>
               {getStatusText()}
             </Badge>
             <Button
