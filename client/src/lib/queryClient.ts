@@ -49,13 +49,9 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       staleTime: Infinity,
       retry: false,
-      // Fast timeout for frontend-only demo
-      networkMode: 'online',
-      gcTime: 0,
     },
     mutations: {
       retry: false,
-      networkMode: 'online',
     },
   },
 });
