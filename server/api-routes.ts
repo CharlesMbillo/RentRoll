@@ -92,7 +92,12 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
           console.log(`✅ VALID SESSION: ${sessionId} (${user.role}: ${user.firstName} ${user.lastName})`);
           
           // For Vercel, return encoded session as sessionId
-          const responseSessionId = isVercel ? vercelSessionManager.encodeSession(user) : sessionId;
+          let responseSessionId: string;
+          if (isVercel && 'userId' in user && 'expiresAt' in user && 'isActive' in user) {
+            responseSessionId = vercelSessionManager.encodeSession(user as any);
+          } else {
+            responseSessionId = sessionId;
+          }
           
           return res.json({
             ...user,
@@ -105,12 +110,16 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
 
       // If role parameter provided, create new session with that role
       if (roleParam && ['landlord', 'caretaker', 'tenant'].includes(roleParam)) {
-        const session = currentSessionManager.createSession ? 
-          currentSessionManager.createSession(roleParam as 'landlord' | 'caretaker' | 'tenant') :
-          currentSessionManager.getUserFromRole(roleParam as 'landlord' | 'caretaker' | 'tenant');
+        const session = currentSessionManager.createSession(roleParam as 'landlord' | 'caretaker' | 'tenant');
         
         const user = isVercel ? session : currentSessionManager.getUserFromSession(session.id);
-        const responseSessionId = isVercel ? vercelSessionManager.encodeSession(session) : session.id;
+        let responseSessionId: string;
+        
+        if (isVercel) {
+          responseSessionId = vercelSessionManager.encodeSession(session);
+        } else {
+          responseSessionId = session.id;
+        }
         
         console.log(`🔐 NEW SESSION CREATED: ${responseSessionId} for ${roleParam.toUpperCase()}`);
         return res.json({
