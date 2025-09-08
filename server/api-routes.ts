@@ -29,12 +29,15 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
     // Development logout endpoint
     router.get('/api/logout', async (req: HttpRequest, res: HttpResponse) => {
       try {
-        console.log("🔐 LOGOUT REQUEST");
+        const sessionId = req.query?.sessionId as string;
+        console.log(`🔐 LOGOUT REQUEST - SessionId: ${sessionId}`);
         
         // Destroy session if exists
-        const sessionId = req.query?.sessionId as string;
         if (sessionId) {
-          sessionManager.destroySession(sessionId);
+          const destroyed = sessionManager.destroySession(sessionId);
+          console.log(`🔐 SESSION DESTRUCTION RESULT: ${destroyed ? 'SUCCESS' : 'FAILED'} for ${sessionId}`);
+        } else {
+          console.log("🔐 NO SESSION ID PROVIDED FOR LOGOUT");
         }
         
         // Set redirect headers manually

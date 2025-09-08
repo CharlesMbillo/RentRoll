@@ -40,6 +40,8 @@ export function useAuth() {
   const { data: user, isLoading, error } = useQuery({
     queryKey,
     retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 0, // Always fetch fresh data
   });
 
   // Store sessionId when user data is received
