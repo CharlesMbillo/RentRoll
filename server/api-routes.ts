@@ -99,8 +99,9 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
                    ((global as any).currentRole && mockUsers[(global as any).currentRole as keyof typeof mockUsers]) ? (global as any).currentRole : 'landlord';
       const mockUser = mockUsers[role as keyof typeof mockUsers];
       
-      // Set logged in state if not already set
-      if ((global as any).isLoggedIn !== false) {
+      // Only set logged in state if we have a role parameter (explicit login)
+      // or if we're not explicitly logged out
+      if (roleParam || (global as any).isLoggedIn !== false) {
         (global as any).isLoggedIn = true;
         (global as any).currentRole = role;
       }
