@@ -44,8 +44,8 @@ export function useAuth() {
 
   // Store sessionId when user data is received
   useEffect(() => {
-    if (user?.sessionId) {
-      setStoredSessionId(user.sessionId);
+    if (user && (user as any).sessionId) {
+      setStoredSessionId((user as any).sessionId);
       
       // If we got a new session from role selection, clear the URL parameter
       if (roleParam) {
