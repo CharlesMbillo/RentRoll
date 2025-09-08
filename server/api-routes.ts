@@ -46,6 +46,20 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
         res.status(500).json({ message: "Logout failed" });
       }
     });
+
+    // Development login endpoint - redirects to landing page
+    router.get('/api/login', async (req: HttpRequest, res: HttpResponse) => {
+      try {
+        console.log("🔐 LOGIN REQUEST - REDIRECTING TO LANDING PAGE");
+        // Set redirect headers manually
+        res.status(302);
+        res.setHeader('Location', '/');
+        res.end();
+      } catch (error) {
+        console.error("Error in development login:", error);
+        res.status(500).json({ message: "Login failed" });
+      }
+    });
   }
 
   // Auth routes

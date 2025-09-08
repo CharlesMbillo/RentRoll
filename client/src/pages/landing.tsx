@@ -4,7 +4,11 @@ import { Building2, CreditCard, MessageSquare, BarChart3, User, Shield, Home } f
 
 export default function Landing() {
   const handleLogin = () => {
-    window.location.href = "/api/login";
+    // Scroll to role selection section
+    const roleSection = document.getElementById('role-selection');
+    if (roleSection) {
+      roleSection.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const handleRoleLogin = (role: string) => {
@@ -155,7 +159,7 @@ export default function Landing() {
 
         {/* Development Role Testing */}
         {process.env.NODE_ENV === 'development' && (
-          <div className="mb-16">
+          <div className="mb-16" id="role-selection">
             <h2 className="text-2xl font-bold text-center text-foreground mb-8">
               🧪 Development Testing - Choose Your Role
             </h2>

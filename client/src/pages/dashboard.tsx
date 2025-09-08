@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "../hooks/use-toast";
-import { isUnauthorizedError } from "../lib/authUtils";
 import MetricsCards from "../components/dashboard/metrics-cards";
 import RoomStatusOverview from "../components/dashboard/room-status-overview";
 import { BarChart3 } from "lucide-react";
@@ -24,7 +23,7 @@ export default function Dashboard() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/";
       }, 500);
     }
   }, [metrics, toast]);
