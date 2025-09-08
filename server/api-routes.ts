@@ -24,6 +24,17 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
         res.status(500).json({ message: "Development login failed" });
       }
     });
+
+    // Development logout endpoint
+    router.get('/api/logout', async (req: HttpRequest, res: HttpResponse) => {
+      try {
+        console.log("Development logout request");
+        res.json({ message: "Logged out successfully" });
+      } catch (error) {
+        console.error("Error in development logout:", error);
+        res.status(500).json({ message: "Logout failed" });
+      }
+    });
   }
 
   // Auth routes
