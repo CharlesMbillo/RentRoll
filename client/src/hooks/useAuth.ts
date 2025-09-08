@@ -65,8 +65,6 @@ export function useAuth() {
     // Get current session ID fresh from storage and user data
     const currentSessionId = getStoredSessionId() || (user as any)?.sessionId;
     
-    console.log('Logout - Current session ID:', currentSessionId);
-    
     // Clear session from local storage
     setStoredSessionId(null);
     
@@ -75,7 +73,6 @@ export function useAuth() {
       ? `/api/logout?sessionId=${currentSessionId}`
       : '/api/logout';
     
-    console.log('Logout URL:', logoutUrl);
     window.location.href = logoutUrl;
   };
 
