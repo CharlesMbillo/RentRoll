@@ -2,14 +2,13 @@ import { Link, useLocation } from "wouter";
 import { cn } from "../../lib/utils";
 import {
   BarChart3,
-  Building2,
   CreditCard,
   MessageSquare,
   Settings,
   Users,
   LayoutGrid,
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "../../hooks/useAuth";
 
 // Define role-based navigation permissions
 const navigationItems = [
@@ -84,7 +83,7 @@ export default function Sidebar() {
               {userRole === 'landlord' ? 'Landlord/Admin' : userRole}
             </div>
             <div className="text-xs text-muted-foreground">
-              {user?.firstName} {user?.lastName}
+              {(user as any)?.firstName} {(user as any)?.lastName}
             </div>
           </div>
         )}
