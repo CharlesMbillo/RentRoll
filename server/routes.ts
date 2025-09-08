@@ -68,7 +68,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error("Session destroy error:", err);
           return res.status(500).json({ error: "Logout failed" });
         }
-        res.json({ message: "Logged out successfully" });
+        console.log("Development logout request - redirecting to landing");
+        res.redirect(302, '/');
       });
     });
   }

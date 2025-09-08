@@ -17,7 +17,7 @@ import Navbar from "./components/layout/navbar";
 import Sidebar from "./components/layout/sidebar";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -30,22 +30,26 @@ function Router() {
     );
   }
 
+  // Show landing page if not authenticated or no user data
+  if (!isAuthenticated || !user) {
+    return (
+      <Switch>
+        <Route path="/" component={Landing} />
+        <Route component={Landing} />
+      </Switch>
+    );
+  }
+
   return (
     <Switch>
-      {!isAuthenticated ? (
-        <Route path="/" component={Landing} />
-      ) : (
-        <>
-          <Route path="/" component={AuthenticatedApp} />
-          <Route path="/dashboard" component={AuthenticatedApp} />
-          <Route path="/rooms" component={AuthenticatedApp} />
-          <Route path="/tenants" component={AuthenticatedApp} />
-          <Route path="/payments" component={AuthenticatedApp} />
-          <Route path="/reports" component={AuthenticatedApp} />
-          <Route path="/notifications" component={AuthenticatedApp} />
-          <Route path="/settings" component={AuthenticatedApp} />
-        </>
-      )}
+      <Route path="/" component={AuthenticatedApp} />
+      <Route path="/dashboard" component={AuthenticatedApp} />
+      <Route path="/rooms" component={AuthenticatedApp} />
+      <Route path="/tenants" component={AuthenticatedApp} />
+      <Route path="/payments" component={AuthenticatedApp} />
+      <Route path="/reports" component={AuthenticatedApp} />
+      <Route path="/notifications" component={AuthenticatedApp} />
+      <Route path="/settings" component={AuthenticatedApp} />
       <Route component={NotFound} />
     </Switch>
   );

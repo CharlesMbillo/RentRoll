@@ -29,7 +29,10 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
     router.get('/api/logout', async (req: HttpRequest, res: HttpResponse) => {
       try {
         console.log("Development logout request");
-        res.json({ message: "Logged out successfully" });
+        // Set redirect headers manually
+        res.status(302);
+        res.setHeader('Location', '/');
+        res.end();
       } catch (error) {
         console.error("Error in development logout:", error);
         res.status(500).json({ message: "Logout failed" });
