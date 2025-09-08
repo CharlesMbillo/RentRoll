@@ -1,10 +1,15 @@
 import { Button } from "../components/ui/button";
-import { Card, CardContent } from "../components/ui/card";
-import { Building2, CreditCard, MessageSquare, BarChart3 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Building2, CreditCard, MessageSquare, BarChart3, User, Shield, Home } from "lucide-react";
 
 export default function Landing() {
   const handleLogin = () => {
     window.location.href = "/api/login";
+  };
+
+  const handleRoleLogin = (role: string) => {
+    // Redirect to main app with role parameter
+    window.location.href = `/?role=${role}`;
   };
 
   return (
@@ -147,6 +152,79 @@ export default function Landing() {
             </div>
           </div>
         </div>
+
+        {/* Development Role Testing */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mb-16">
+            <h2 className="text-2xl font-bold text-center text-foreground mb-8">
+              🧪 Development Testing - Choose Your Role
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleRoleLogin('landlord')}>
+                <CardHeader className="text-center">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                    <Shield className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <CardTitle className="text-lg">🔑 Landlord/Admin</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Full system access, property management, all financial data
+                  </p>
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    <p><strong>Email:</strong> admin@rentflow.com</p>
+                    <p><strong>Name:</strong> Admin Manager</p>
+                  </div>
+                  <Button className="w-full mt-4" data-testid="button-landlord-login">
+                    Test as Landlord
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleRoleLogin('caretaker')}>
+                <CardHeader className="text-center">
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                    <User className="w-6 h-6 text-green-600" />
+                  </div>
+                  <CardTitle className="text-lg">👷 Caretaker</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Property maintenance, tenant management, limited financial access
+                  </p>
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    <p><strong>Email:</strong> caretaker@rentflow.com</p>
+                    <p><strong>Name:</strong> John Caretaker</p>
+                  </div>
+                  <Button variant="outline" className="w-full mt-4" data-testid="button-caretaker-login">
+                    Test as Caretaker
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleRoleLogin('tenant')}>
+                <CardHeader className="text-center">
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                    <Home className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <CardTitle className="text-lg">🏠 Tenant</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Personal payment history, room details, limited system access
+                  </p>
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    <p><strong>Email:</strong> tenant@rentflow.com</p>
+                    <p><strong>Name:</strong> Jane Tenant</p>
+                  </div>
+                  <Button variant="outline" className="w-full mt-4" data-testid="button-tenant-login">
+                    Test as Tenant
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
 
         {/* Call to Action */}
         <div className="text-center mt-16">
