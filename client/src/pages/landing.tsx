@@ -1,8 +1,12 @@
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Building2, CreditCard, MessageSquare, BarChart3, User, Shield, Home } from "lucide-react";
+import SimpleLogin from "../components/auth/SimpleLogin";
+import { useState } from "react";
 
 export default function Landing() {
+  const [showSimpleLogin, setShowSimpleLogin] = useState(false);
+
   const handleLogin = () => {
     // Scroll to role selection section
     const roleSection = document.getElementById('role-selection');
@@ -15,6 +19,11 @@ export default function Landing() {
     // Redirect to main app with role parameter
     window.location.href = `/?role=${role}`;
   };
+
+  // Show simple login form if requested
+  if (showSimpleLogin) {
+    return <SimpleLogin onLogin={() => setShowSimpleLogin(false)} />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -29,14 +38,25 @@ export default function Landing() {
             Complete property management platform with automated rent collection, 
             tenant management, and real-time analytics.
           </p>
-          <Button 
-            onClick={handleLogin}
-            size="lg"
-            className="px-8 py-3 text-lg"
-            data-testid="button-login"
-          >
-            Sign In to Continue
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              onClick={handleLogin}
+              size="lg"
+              className="px-8 py-3 text-lg"
+              data-testid="button-login"
+            >
+              Choose Your Role
+            </Button>
+            <Button 
+              onClick={() => setShowSimpleLogin(true)}
+              size="lg"
+              variant="outline"
+              className="px-8 py-3 text-lg"
+              data-testid="button-simple-login"
+            >
+              Demo Login
+            </Button>
+          </div>
         </div>
 
         {/* Features Grid */}
