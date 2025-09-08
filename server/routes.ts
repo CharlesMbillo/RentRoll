@@ -60,6 +60,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       req.session.passport = { user: testUser };
       res.json({ message: "Logged in as Tenant", user: testUser, role: "tenant" });
     });
+
+    // Development logout
+    app.get('/api/logout', (req: any, res) => {
+      req.session.destroy((err: any) => {
+        if (err) {
+          console.error("Session destroy error:", err);
+          return res.status(500).json({ error: "Logout failed" });
+        }
+        res.json({ message: "Logged out successfully" });
+      });
+    });
   }
 
   // Direct role-based test endpoints 
