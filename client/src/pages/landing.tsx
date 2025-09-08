@@ -1,8 +1,8 @@
+import { useState } from "react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Building2, CreditCard, MessageSquare, BarChart3, User, Shield, Home } from "lucide-react";
 import SimpleLogin from "../components/auth/SimpleLogin";
-import { useState } from "react";
 
 export default function Landing() {
   const [showSimpleLogin, setShowSimpleLogin] = useState(false);
