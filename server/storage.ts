@@ -37,6 +37,7 @@ export interface IStorage {
   deleteProperty(id: string): Promise<boolean>;
 
   // Room operations
+  getRooms(): Promise<Room[]>;
   getRoomsByProperty(propertyId: string): Promise<Room[]>;
   getRoom(id: string): Promise<Room | undefined>;
   createRoom(room: InsertRoom): Promise<Room>;
@@ -141,6 +142,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Room operations
+  async getRooms(): Promise<Room[]> {
+    return await db
+      .select()
+      .from(rooms)
+      .orderBy(asc(rooms.roomNumber));
+  }
+
   async getRoomsByProperty(propertyId: string): Promise<Room[]> {
     return await db
       .select()

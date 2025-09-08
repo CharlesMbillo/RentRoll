@@ -121,6 +121,90 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
     }
   });
 
+  // Tenant Assignment routes
+  router.post('/api/assignments/assign', async (req: HttpRequest, res: HttpResponse) => {
+    try {
+      const { tenantId, roomId, assignedBy } = req.body;
+      const success = await tenantAssignmentService.assignTenantToRoom(tenantId, roomId, assignedBy);
+      res.json({ success, message: success ? 'Tenant assigned successfully' : 'Assignment failed' });
+    } catch (error) {
+      console.error("Error assigning tenant:", error);
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to assign tenant" });
+    }
+  });
+
+  router.post('/api/assignments/unassign', async (req: HttpRequest, res: HttpResponse) => {
+    try {
+      const { tenantId, reason } = req.body;
+      const success = await tenantAssignmentService.unassignTenantFromRoom(tenantId, reason);
+      res.json({ success, message: success ? 'Tenant unassigned successfully' : 'Unassignment failed' });
+    } catch (error) {
+      console.error("Error unassigning tenant:", error);
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to unassign tenant" });
+    }
+  });
+
+  router.get('/api/assignments/assigned-tenants', async (req: HttpRequest, res: HttpResponse) => {
+    try {
+      const assignedTenants = await tenantAssignmentService.getAssignedTenants();
+      res.json(assignedTenants);
+    } catch (error) {
+      console.error("Error fetching assigned tenants:", error);
+      res.status(500).json({ message: "Failed to fetch assigned tenants" });
+    }
+  });
+
+  router.get('/api/assignments/unassigned-tenants', async (req: HttpRequest, res: HttpResponse) => {
+    try {
+      const unassignedTenants = await tenantAssignmentService.getUnassignedTenants();
+      res.json(unassignedTenants);
+    } catch (error) {
+      console.error("Error fetching unassigned tenants:", error);
+      res.status(500).json({ message: "Failed to fetch unassigned tenants" });
+    }
+  });
+
+  router.get('/api/assignments/available-rooms', async (req: HttpRequest, res: HttpResponse) => {
+    try {
+      const availableRooms = await tenantAssignmentService.getAvailableRooms();
+      res.json(availableRooms);
+    } catch (error) {
+      console.error("Error fetching available rooms:", error);
+      res.status(500).json({ message: "Failed to fetch available rooms" });
+    }
+  });
+
+  router.get('/api/assignments/occupancy-summary', async (req: HttpRequest, res: HttpResponse) => {
+    try {
+      const summary = await tenantAssignmentService.getOccupancySummary();
+      res.json(summary);
+    } catch (error) {
+      console.error("Error fetching occupancy summary:", error);
+      res.status(500).json({ message: "Failed to fetch occupancy summary" });
+    }
+  });
+
+  router.post('/api/assignments/bulk-assign', async (req: HttpRequest, res: HttpResponse) => {
+    try {
+      const { assignments } = req.body;
+      const result = await tenantAssignmentService.bulkAssignTenants(assignments);
+      res.json(result);
+    } catch (error) {
+      console.error("Error in bulk assignment:", error);
+      res.status(500).json({ message: "Failed to perform bulk assignment" });
+    }
+  });
+
+  router.get('/api/assignments/suggestions', async (req: HttpRequest, res: HttpResponse) => {
+    try {
+      const suggestions = await tenantAssignmentService.suggestRoomAssignments();
+      res.json(suggestions);
+    } catch (error) {
+      console.error("Error generating assignment suggestions:", error);
+      res.status(500).json({ message: "Failed to generate assignment suggestions" });
+    }
+  });
+
   // Properties routes
   router.get('/api/properties', async (req: HttpRequest, res: HttpResponse) => {
     try {

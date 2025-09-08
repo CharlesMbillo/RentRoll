@@ -50,8 +50,7 @@ export class TenantAssignmentService {
 
       // Update tenant with new room assignment
       const updatedTenant = await storage.updateTenant(tenantId, { 
-        roomId: roomId,
-        updatedAt: new Date()
+        roomId: roomId
       });
 
       console.log(`✅ TENANT ASSIGNMENT SUCCESS: ${tenant.firstName} ${tenant.lastName} assigned to room ${roomId}`);
@@ -84,8 +83,7 @@ export class TenantAssignmentService {
 
       // Update tenant to remove room assignment
       const updatedTenant = await storage.updateTenant(tenantId, { 
-        roomId: null,
-        updatedAt: new Date()
+        roomId: null
       });
 
       console.log(`✅ TENANT UNASSIGNMENT SUCCESS: ${tenant.firstName} ${tenant.lastName} unassigned from room ${oldRoomId}`);
@@ -142,7 +140,7 @@ export class TenantAssignmentService {
   async getAvailableRooms(): Promise<Room[]> {
     try {
       const rooms = await storage.getRooms();
-      return rooms.filter(r => r.status === 'vacant');
+      return rooms.filter((r: Room) => r.status === 'vacant');
     } catch (error) {
       console.error('Error fetching available rooms:', error);
       throw error;
@@ -166,13 +164,13 @@ export class TenantAssignmentService {
         storage.getTenants()
       ]);
 
-      const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
-      const vacantRooms = rooms.filter(r => r.status === 'vacant').length;
+      const occupiedRooms = rooms.filter((r: Room) => r.status === 'occupied').length;
+      const vacantRooms = rooms.filter((r: Room) => r.status === 'vacant').length;
       const totalRooms = rooms.length;
       const occupancyRate = totalRooms > 0 ? (occupiedRooms / totalRooms) * 100 : 0;
       
-      const assignedTenants = tenants.filter(t => t.roomId).length;
-      const unassignedTenants = tenants.filter(t => !t.roomId).length;
+      const assignedTenants = tenants.filter((t: Tenant) => t.roomId).length;
+      const unassignedTenants = tenants.filter((t: Tenant) => !t.roomId).length;
 
       return {
         totalRooms,
@@ -242,7 +240,7 @@ export class TenantAssignmentService {
         suggestions.push({
           tenantId: unassignedTenants[i].id,
           suggestedRoomId: availableRooms[i].id,
-          reason: `Available room ${availableRooms[i].number} suitable for ${unassignedTenants[i].firstName} ${unassignedTenants[i].lastName}`
+          reason: `Available room ${availableRooms[i].roomNumber} suitable for ${unassignedTenants[i].firstName} ${unassignedTenants[i].lastName}`
         });
       }
 
