@@ -29,6 +29,9 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
     router.get('/api/logout', async (req: HttpRequest, res: HttpResponse) => {
       try {
         console.log("Development logout request");
+        // Clear the logged in state
+        (global as any).isLoggedIn = false;
+        (global as any).currentRole = null;
         // Set redirect headers manually
         res.status(302);
         res.setHeader('Location', '/');
@@ -43,6 +46,12 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
   // Auth routes
   router.get('/api/auth/user', async (req: HttpRequest, res: HttpResponse) => {
     try {
+      // Check if user is logged out
+      if ((global as any).isLoggedIn === false) {
+        console.log("❌ USER LOGGED OUT - RETURNING UNAUTHORIZED");
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const roleParam = req.query?.role as string;
       console.log(`Auth/user called with role parameter: ${roleParam}`);
       
@@ -79,8 +88,22 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
         }
       };
 
-      const role = roleParam && mockUsers[roleParam as keyof typeof mockUsers] ? roleParam : 'landlord';
+      // If role parameter provided, log the user in and set their role
+      if (roleParam && mockUsers[roleParam as keyof typeof mockUsers]) {
+        (global as any).isLoggedIn = true;
+        (global as any).currentRole = roleParam;
+        console.log(`🔐 LOGGING IN AS ${roleParam.toUpperCase()}`);
+      }
+
+      const role = roleParam && mockUsers[roleParam as keyof typeof mockUsers] ? roleParam : 
+                   ((global as any).currentRole && mockUsers[(global as any).currentRole as keyof typeof mockUsers]) ? (global as any).currentRole : 'landlord';
       const mockUser = mockUsers[role as keyof typeof mockUsers];
+      
+      // Set logged in state if not already set
+      if ((global as any).isLoggedIn !== false) {
+        (global as any).isLoggedIn = true;
+        (global as any).currentRole = role;
+      }
       
       console.log(`✅ RETURNING MOCK ${role.toUpperCase()} USER FOR TESTING`);
       res.json(mockUser);
