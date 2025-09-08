@@ -40,18 +40,46 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
   // Auth routes
   router.get('/api/auth/user', async (req: HttpRequest, res: HttpResponse) => {
     try {
-      const mockUser = {
-        id: 'dev-user-123',
-        email: 'developer@rentflow.com',
-        firstName: 'Developer',
-        lastName: 'User',
-        role: 'landlord',
-        profileImageUrl: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      const roleParam = req.query?.role as string;
+      console.log(`Auth/user called with role parameter: ${roleParam}`);
       
-      console.log("Returning mock user for development testing");
+      const mockUsers = {
+        landlord: {
+          id: 'admin-user-001',
+          email: 'admin@rentflow.com',
+          firstName: 'Admin',
+          lastName: 'Manager',
+          role: 'landlord',
+          profileImageUrl: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        caretaker: {
+          id: 'caretaker-002',
+          email: 'caretaker@rentflow.com',
+          firstName: 'John',
+          lastName: 'Caretaker',
+          role: 'caretaker',
+          profileImageUrl: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        tenant: {
+          id: 'tenant-003',
+          email: 'tenant@rentflow.com',
+          firstName: 'Jane',
+          lastName: 'Tenant',
+          role: 'tenant',
+          profileImageUrl: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }
+      };
+
+      const role = roleParam && mockUsers[roleParam as keyof typeof mockUsers] ? roleParam : 'landlord';
+      const mockUser = mockUsers[role as keyof typeof mockUsers];
+      
+      console.log(`✅ RETURNING MOCK ${role.toUpperCase()} USER FOR TESTING`);
       res.json(mockUser);
     } catch (error) {
       console.error("Error fetching user:", error);
