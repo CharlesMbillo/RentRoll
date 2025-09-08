@@ -178,7 +178,7 @@ export default function Landing() {
         </div>
 
         {/* Development Role Testing */}
-        {import.meta.env.MODE === 'development' && (
+        {true && (
           <div className="mb-16" id="role-selection">
             <h2 className="text-2xl font-bold text-center text-foreground mb-8">
               🧪 Development Testing - Choose Your Role
