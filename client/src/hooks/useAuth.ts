@@ -4,6 +4,9 @@ export function useAuth() {
   const { data: user, isLoading, error } = useQuery({
     queryKey: ["/api/auth/user"],
     retry: false,
+    // Quick timeout for demo mode
+    staleTime: 0,
+    gcTime: 0,
   });
 
   // For frontend-only demo: provide mock user when API fails
