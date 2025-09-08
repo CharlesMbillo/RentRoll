@@ -2,6 +2,7 @@ import { HttpRouter, HttpRequest, HttpResponse } from './http-router';
 import { storage } from './storage';
 import { insertTenantSchema, insertPaymentSchema, insertRoomSchema } from '@shared/schema';
 import { z } from 'zod';
+import { sessionManager } from './session-manager';
 
 export async function setupApiRoutes(router: HttpRouter): Promise<void> {
   
@@ -28,10 +29,14 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
     // Development logout endpoint
     router.get('/api/logout', async (req: HttpRequest, res: HttpResponse) => {
       try {
-        console.log("Development logout request");
-        // Clear the logged in state
-        (global as any).isLoggedIn = false;
-        (global as any).currentRole = null;
+        console.log("🔐 LOGOUT REQUEST");
+        
+        // Destroy session if exists
+        const sessionId = req.query?.sessionId as string;
+        if (sessionId) {
+          sessionManager.destroySession(sessionId);
+        }
+        
         // Set redirect headers manually
         res.status(302);
         res.setHeader('Location', '/');
