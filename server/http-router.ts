@@ -243,7 +243,7 @@ export function createLoggingMiddleware() {
 
         console.log(`[express] ${logLine}`);
       }
-      return originalEnd.apply(this, args);
+      return originalEnd.apply(this, args as [any, any?]);
     };
   };
 }
