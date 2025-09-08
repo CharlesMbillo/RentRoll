@@ -1,0 +1,78 @@
+[09:37:31.599] Running build in Washington, D.C., USA (East) – iad1
+[09:37:31.606] Build machine configuration: 2 cores, 8 GB
+[09:37:31.620] Cloning github.com/CharlesMbillo/RentRoll (Branch: main, Commit: 09e47dc)
+[09:37:31.997] Previous build caches not available
+[09:37:32.212] Cloning completed: 592.000ms
+[09:37:32.729] Running "vercel build"
+[09:37:34.388] Vercel CLI 47.0.5
+[09:37:34.570] WARN! Due to `builds` existing in your configuration file, the Build and Development Settings defined in your Project Settings will not apply. Learn More: https://vercel.link/unused-build-settings
+[09:37:35.338] Installing dependencies...
+[09:37:43.362] 
+[09:37:43.362] added 335 packages in 8s
+[09:37:43.363] 
+[09:37:43.363] 49 packages are looking for funding
+[09:37:43.363]   run `npm fund` for details
+[09:37:43.426] Running "npm run build"
+[09:37:43.544] 
+[09:37:43.545] > rentflow-client@0.0.0 build
+[09:37:43.545] > vite build
+[09:37:43.545] 
+[09:37:43.768] [36mvite v5.4.19 [32mbuilding for production...[36m[39m
+[09:37:43.822] transforming...
+[09:37:45.104] src/components/ui/tooltip.tsx (1:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+[09:37:45.106] src/components/ui/tooltip.tsx (1:0): Module level directives cause errors when bundled, "use client" in "src/components/ui/tooltip.tsx" was ignored.
+[09:37:45.119] node_modules/@tanstack/react-query/build/modern/useQueries.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/useQueries.js" was ignored.
+[09:37:45.123] node_modules/@tanstack/react-query/build/modern/useQuery.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/useQuery.js" was ignored.
+[09:37:45.125] node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js" was ignored.
+[09:37:45.126] node_modules/@tanstack/react-query/build/modern/HydrationBoundary.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/HydrationBoundary.js" was ignored.
+[09:37:45.127] node_modules/@tanstack/react-query/build/modern/QueryErrorResetBoundary.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/QueryErrorResetBoundary.js" was ignored.
+[09:37:45.128] node_modules/@tanstack/react-query/build/modern/useIsFetching.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/useIsFetching.js" was ignored.
+[09:37:45.130] node_modules/@tanstack/react-query/build/modern/useMutationState.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/useMutationState.js" was ignored.
+[09:37:45.131] node_modules/@tanstack/react-query/build/modern/useMutation.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/useMutation.js" was ignored.
+[09:37:45.132] node_modules/@tanstack/react-query/build/modern/useInfiniteQuery.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/useInfiniteQuery.js" was ignored.
+[09:37:45.133] node_modules/@tanstack/react-query/build/modern/IsRestoringProvider.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/IsRestoringProvider.js" was ignored.
+[09:37:45.138] node_modules/@tanstack/react-query/build/modern/useSuspenseQuery.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/useSuspenseQuery.js" was ignored.
+[09:37:45.140] node_modules/@tanstack/react-query/build/modern/useSuspenseInfiniteQuery.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/useSuspenseInfiniteQuery.js" was ignored.
+[09:37:45.142] node_modules/@tanstack/react-query/build/modern/useSuspenseQueries.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/useSuspenseQueries.js" was ignored.
+[09:37:45.454] node_modules/@radix-ui/react-tooltip/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-tooltip/dist/index.mjs" was ignored.
+[09:37:45.464] src/components/ui/dialog.tsx (1:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+[09:37:45.467] src/components/ui/dialog.tsx (1:0): Module level directives cause errors when bundled, "use client" in "src/components/ui/dialog.tsx" was ignored.
+[09:37:45.468] src/components/ui/form.tsx (1:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+[09:37:45.470] src/components/ui/form.tsx (1:0): Module level directives cause errors when bundled, "use client" in "src/components/ui/form.tsx" was ignored.
+[09:37:45.471] src/components/ui/select.tsx (1:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+[09:37:45.471] src/components/ui/select.tsx (1:0): Module level directives cause errors when bundled, "use client" in "src/components/ui/select.tsx" was ignored.
+[09:37:45.546] node_modules/@tanstack/react-query/build/modern/errorBoundaryUtils.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/errorBoundaryUtils.js" was ignored.
+[09:37:45.751] node_modules/@tanstack/react-query/build/modern/useBaseQuery.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@tanstack/react-query/build/modern/useBaseQuery.js" was ignored.
+[09:37:45.770] src/components/ui/avatar.tsx (1:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+[09:37:45.771] src/components/ui/avatar.tsx (1:0): Module level directives cause errors when bundled, "use client" in "src/components/ui/avatar.tsx" was ignored.
+[09:37:46.750] node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs" was ignored.
+[09:37:46.753] node_modules/@radix-ui/react-popper/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-popper/dist/index.mjs" was ignored.
+[09:37:46.756] node_modules/@radix-ui/react-portal/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-portal/dist/index.mjs" was ignored.
+[09:37:46.757] node_modules/@radix-ui/react-presence/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-presence/dist/index.mjs" was ignored.
+[09:37:46.760] node_modules/@radix-ui/react-dialog/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-dialog/dist/index.mjs" was ignored.
+[09:37:46.768] node_modules/@radix-ui/react-switch/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-switch/dist/index.mjs" was ignored.
+[09:37:46.771] node_modules/@radix-ui/react-toast/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-toast/dist/index.mjs" was ignored.
+[09:37:46.802] node_modules/@radix-ui/react-avatar/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-avatar/dist/index.mjs" was ignored.
+[09:37:46.804] node_modules/@radix-ui/react-dropdown-menu/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-dropdown-menu/dist/index.mjs" was ignored.
+[09:37:46.808] node_modules/@radix-ui/react-select/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-select/dist/index.mjs" was ignored.
+[09:37:46.924] node_modules/@radix-ui/react-focus-scope/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-focus-scope/dist/index.mjs" was ignored.
+[09:37:46.927] node_modules/@radix-ui/react-focus-guards/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-focus-guards/dist/index.mjs" was ignored.
+[09:37:46.928] node_modules/@radix-ui/react-collection/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-collection/dist/index.mjs" was ignored.
+[09:37:47.020] node_modules/@radix-ui/react-menu/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-menu/dist/index.mjs" was ignored.
+[09:37:47.036] node_modules/@radix-ui/react-label/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-label/dist/index.mjs" was ignored.
+[09:37:47.037] node_modules/@radix-ui/react-alert-dialog/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-alert-dialog/dist/index.mjs" was ignored.
+[09:37:47.059] node_modules/@radix-ui/react-roving-focus/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-roving-focus/dist/index.mjs" was ignored.
+[09:37:48.513] [32m✓[39m 2062 modules transformed.
+[09:37:48.959] rendering chunks...
+[09:37:48.972] computing gzip size...
+[09:37:48.995] [2mdist/[22m[32mindex.html                 [39m[1m[2m  2.20 kB[22m[1m[22m[2m │ gzip:   0.86 kB[22m
+[09:37:48.995] [2mdist/[22m[2massets/[22m[35mindex-ESi_hLvr.css  [39m[1m[2m 55.02 kB[22m[1m[22m[2m │ gzip:   9.98 kB[22m
+[09:37:48.995] [2mdist/[22m[2massets/[22m[36mindex-DWKBl1Mf.js   [39m[1m[33m545.51 kB[39m[22m[2m │ gzip: 160.14 kB[22m
+[09:37:48.996] [33m
+[09:37:48.996] (!) Some chunks are larger than 500 kB after minification. Consider:
+[09:37:48.996] - Using dynamic import() to code-split the application
+[09:37:48.996] - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+[09:37:48.996] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[09:37:48.997] [32m✓ built in 5.20s[39m
+[09:37:49.049] Error: No Output Directory named "dist" found after the Build completed. You can configure the Output Directory in your Project Settings.
+[09:37:49.049] Learn More: https://vercel.link/missing-public-directory
