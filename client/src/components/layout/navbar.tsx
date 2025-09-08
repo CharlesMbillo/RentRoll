@@ -12,7 +12,7 @@ import {
 import type { User } from "../../lib/types";
 
 export default function Navbar() {
-  const { user } = useAuth() as { user: User | null };
+  const { user, logout } = useAuth() as { user: User | null; logout: () => void };
   
   // Fetch property data to show the actual property name
   const { data: properties = [] } = useQuery<any[]>({
@@ -20,7 +20,7 @@ export default function Navbar() {
   });
 
   const handleLogout = () => {
-    window.location.href = "/api/logout";
+    logout();
   };
 
   const getInitials = (firstName?: string, lastName?: string) => {
