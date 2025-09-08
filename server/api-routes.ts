@@ -3,6 +3,7 @@ import { storage } from './storage';
 import { insertTenantSchema, insertPaymentSchema, insertRoomSchema } from '@shared/schema';
 import { z } from 'zod';
 import { sessionManager } from './session-manager';
+import { vercelSessionManager } from './vercel-session-manager';
 import { tenantAssignmentService } from './tenant-assignment-service';
 
 export async function setupApiRoutes(router: HttpRouter): Promise<void> {
@@ -27,15 +28,19 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
       }
     });
 
-    // Development logout endpoint
+    // Logout endpoint (works in both development and production)
     router.get('/api/logout', async (req: HttpRequest, res: HttpResponse) => {
       try {
         const sessionId = req.query?.sessionId as string;
         console.log(`🔐 LOGOUT REQUEST - SessionId: ${sessionId}`);
         
+        // Determine which session manager to use
+        const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+        const currentSessionManager = isVercel ? vercelSessionManager : sessionManager;
+        
         // Destroy session if exists
         if (sessionId) {
-          const destroyed = sessionManager.destroySession(sessionId);
+          const destroyed = currentSessionManager.destroySession(sessionId);
           console.log(`🔐 SESSION DESTRUCTION RESULT: ${destroyed ? 'SUCCESS' : 'FAILED'} for ${sessionId}`);
         } else {
           console.log("🔐 NO SESSION ID PROVIDED FOR LOGOUT");
@@ -46,7 +51,7 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
         res.setHeader('Location', '/');
         res.end();
       } catch (error) {
-        console.error("Error in development logout:", error);
+        console.error("Error in logout:", error);
         res.status(500).json({ message: "Logout failed" });
       }
     });
@@ -74,14 +79,24 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
       
       console.log(`🔐 AUTH REQUEST: role=${roleParam}, sessionId=${sessionId}`);
       
+      // Determine which session manager to use based on environment
+      const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+      const currentSessionManager = isVercel ? vercelSessionManager : sessionManager;
+      
+      console.log(`🔧 USING SESSION MANAGER: ${isVercel ? 'VERCEL' : 'LOCAL'}`);
+      
       // Check if there's an existing valid session
       if (sessionId) {
-        const user = sessionManager.getUserFromSession(sessionId);
+        const user = currentSessionManager.getUserFromSession(sessionId);
         if (user) {
           console.log(`✅ VALID SESSION: ${sessionId} (${user.role}: ${user.firstName} ${user.lastName})`);
+          
+          // For Vercel, return encoded session as sessionId
+          const responseSessionId = isVercel ? vercelSessionManager.encodeSession(user) : sessionId;
+          
           return res.json({
             ...user,
-            sessionId: sessionId
+            sessionId: responseSessionId
           });
         } else {
           console.log(`❌ INVALID SESSION: ${sessionId}`);
@@ -90,13 +105,17 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
 
       // If role parameter provided, create new session with that role
       if (roleParam && ['landlord', 'caretaker', 'tenant'].includes(roleParam)) {
-        const session = sessionManager.createSession(roleParam as 'landlord' | 'caretaker' | 'tenant');
-        const user = sessionManager.getUserFromSession(session.id);
+        const session = currentSessionManager.createSession ? 
+          currentSessionManager.createSession(roleParam as 'landlord' | 'caretaker' | 'tenant') :
+          currentSessionManager.getUserFromRole(roleParam as 'landlord' | 'caretaker' | 'tenant');
         
-        console.log(`🔐 NEW SESSION CREATED: ${session.id} for ${roleParam.toUpperCase()}`);
+        const user = isVercel ? session : currentSessionManager.getUserFromSession(session.id);
+        const responseSessionId = isVercel ? vercelSessionManager.encodeSession(session) : session.id;
+        
+        console.log(`🔐 NEW SESSION CREATED: ${responseSessionId} for ${roleParam.toUpperCase()}`);
         return res.json({
           ...user,
-          sessionId: session.id
+          sessionId: responseSessionId
         });
       }
 
