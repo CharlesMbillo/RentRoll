@@ -1,0 +1,61 @@
+import React, { useState, useEffect } from "react";
+
+export default function Login() {
+  const [email, setEmail] = useState("test@example.com");
+  const [password, setPassword] = useState("password123");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Replace with your real auth logic
+    console.log("Logging in with", { email, password });
+  };
+
+  // Optional: auto-submit for demo (if you only want one click)
+  // useEffect(() => {
+  //   handleSubmit(new Event("submit") as unknown as React.FormEvent);
+  // }, []);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="w-full max-w-md p-6 bg-white rounded-2xl shadow-md">
+        <h2 className="text-2xl font-bold text-center mb-6">Sign In</h2>
+
+        {/* 🚀 Always show test credentials */}
+        <div className="mb-6 p-4 bg-yellow-100 border border-yellow-300 rounded-md">
+          <h3 className="font-semibold text-sm text-gray-800 mb-2">
+            Test Credentials
+          </h3>
+          <p className="text-sm text-gray-700">
+            <strong>Email:</strong> test@example.com
+          </p>
+          <p className="text-sm text-gray-700">
+            <strong>Password:</strong> password123
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            readOnly
+            className="w-full px-3 py-2 border rounded-lg bg-gray-100 cursor-not-allowed"
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            readOnly
+            className="w-full px-3 py-2 border rounded-lg bg-gray-100 cursor-not-allowed"
+          />
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+          >
+            Sign In
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
