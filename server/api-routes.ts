@@ -52,71 +52,43 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
   router.get('/api/auth/user', async (req: HttpRequest, res: HttpResponse) => {
     try {
       const roleParam = req.query?.role as string;
-      console.log(`Auth/user called with role parameter: ${roleParam}`);
+      const sessionId = req.query?.sessionId as string;
       
-      const mockUsers = {
-        landlord: {
-          id: 'admin-user-001',
-          email: 'admin@rentflow.com',
-          firstName: 'Admin',
-          lastName: 'Manager',
-          role: 'landlord',
-          profileImageUrl: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        caretaker: {
-          id: 'caretaker-002',
-          email: 'caretaker@rentflow.com',
-          firstName: 'John',
-          lastName: 'Caretaker',
-          role: 'caretaker',
-          profileImageUrl: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        tenant: {
-          id: 'tenant-003',
-          email: 'tenant@rentflow.com',
-          firstName: 'Jane',
-          lastName: 'Tenant',
-          role: 'tenant',
-          profileImageUrl: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+      console.log(`🔐 AUTH REQUEST: role=${roleParam}, sessionId=${sessionId}`);
+      
+      // Check if there's an existing valid session
+      if (sessionId) {
+        const user = sessionManager.getUserFromSession(sessionId);
+        if (user) {
+          console.log(`✅ VALID SESSION: ${sessionId} (${user.role}: ${user.firstName} ${user.lastName})`);
+          return res.json({
+            ...user,
+            sessionId: sessionId
+          });
+        } else {
+          console.log(`❌ INVALID SESSION: ${sessionId}`);
         }
-      };
-
-      // If role parameter provided, log the user in automatically
-      if (roleParam && mockUsers[roleParam as keyof typeof mockUsers]) {
-        (global as any).isLoggedIn = true;
-        (global as any).currentRole = roleParam;
-        console.log(`🔐 AUTO-LOGIN AS ${roleParam.toUpperCase()} FROM ROLE SELECTION`);
-        const mockUser = mockUsers[roleParam as keyof typeof mockUsers];
-        console.log(`✅ RETURNING MOCK ${roleParam.toUpperCase()} USER FOR TESTING`);
-        return res.json(mockUser);
       }
 
-      // Check if user is logged out (no role parameter and explicitly logged out)
-      if ((global as any).isLoggedIn === false) {
-        console.log("❌ USER LOGGED OUT - RETURNING UNAUTHORIZED");
-        return res.status(401).json({ message: "Unauthorized" });
+      // If role parameter provided, create new session with that role
+      if (roleParam && ['landlord', 'caretaker', 'tenant'].includes(roleParam)) {
+        const session = sessionManager.createSession(roleParam as 'landlord' | 'caretaker' | 'tenant');
+        const user = sessionManager.getUserFromSession(session.id);
+        
+        console.log(`🔐 NEW SESSION CREATED: ${session.id} for ${roleParam.toUpperCase()}`);
+        return res.json({
+          ...user,
+          sessionId: session.id
+        });
       }
 
-      // Use current role or default to landlord
-      const role = ((global as any).currentRole && mockUsers[(global as any).currentRole as keyof typeof mockUsers]) ? 
-                   (global as any).currentRole : 'landlord';
-      const mockUser = mockUsers[role as keyof typeof mockUsers];
+      // No valid session or role parameter - return unauthorized
+      console.log("❌ NO VALID SESSION OR ROLE - UNAUTHORIZED");
+      return res.status(401).json({ message: "Unauthorized" });
       
-      // Set logged in state if not already set
-      (global as any).isLoggedIn = true;
-      (global as any).currentRole = role;
-      
-      console.log(`✅ RETURNING MOCK ${role.toUpperCase()} USER FOR TESTING`);
-      res.json(mockUser);
     } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
+      console.error("Error in auth/user:", error);
+      res.status(500).json({ message: "Failed to authenticate user" });
     }
   });
 
