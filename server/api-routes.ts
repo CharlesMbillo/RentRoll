@@ -3,6 +3,7 @@ import { storage } from './storage';
 import { insertTenantSchema, insertPaymentSchema, insertRoomSchema } from '@shared/schema';
 import { z } from 'zod';
 import { sessionManager } from './session-manager';
+import { tenantAssignmentService } from './tenant-assignment-service';
 
 export async function setupApiRoutes(router: HttpRouter): Promise<void> {
   

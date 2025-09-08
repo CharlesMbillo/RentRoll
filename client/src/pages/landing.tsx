@@ -178,7 +178,7 @@ export default function Landing() {
         </div>
 
         {/* Development Role Testing */}
-        {process.env.NODE_ENV === 'development' && (
+        {import.meta.env.DEV && (
           <div className="mb-16" id="role-selection">
             <h2 className="text-2xl font-bold text-center text-foreground mb-8">
               🧪 Development Testing - Choose Your Role
