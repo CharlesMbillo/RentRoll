@@ -60,8 +60,18 @@ export function useAuth() {
   }, [user, error, roleParam]);
 
   const logout = () => {
+    // Get current session ID before clearing it
+    const currentSessionId = storedSessionId;
+    
+    // Clear session from local storage
     setStoredSessionId(null);
-    window.location.href = '/api/logout';
+    
+    // Pass session ID to server for cleanup
+    const logoutUrl = currentSessionId 
+      ? `/api/logout?sessionId=${currentSessionId}`
+      : '/api/logout';
+    
+    window.location.href = logoutUrl;
   };
 
   return {
