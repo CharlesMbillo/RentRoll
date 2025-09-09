@@ -20,7 +20,7 @@
     "api/index.ts": {
       "runtime": "@vercel/node@3.0.0",
       "maxDuration": 30,
-      "includeFiles": ["server/**", "shared/**"]
+      "includeFiles": "{server/**,shared/**}"
     }
   }
 }
