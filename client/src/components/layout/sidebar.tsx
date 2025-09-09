@@ -134,7 +134,7 @@ export default function Sidebar() {
             </div>
             
             {/* Role switching for development */}
-            {import.meta.env.MODE === 'development' && (
+            {(import.meta as any).env?.MODE === 'development' && (
               <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                 <div className="text-xs font-medium text-yellow-800 dark:text-yellow-200 mb-2 flex items-center">
                   <RefreshCw className="w-3 h-3 mr-1" />
