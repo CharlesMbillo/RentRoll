@@ -2,6 +2,13 @@
   "version": 2,
   "builds": [
     {
+      "src": "server/index.ts",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["server/**", "shared/**"]
+      }
+    },
+    {
       "src": "client/package.json",
       "use": "@vercel/static-build",
       "config": {
@@ -24,10 +31,8 @@
     "VERCEL": "1"
   },
   "functions": {
-    "api/index.ts": {
-      "runtime": "@vercel/node@3.0.0",
-      "maxDuration": 30,
-      "includeFiles": "{server/**,shared/**}"
+    "server/index.ts": {
+      "maxDuration": 30
     }
   }
 }

@@ -8,6 +8,7 @@ import {
   text,
   integer,
   decimal,
+  boolean,
   uuid,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
