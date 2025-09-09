@@ -8,8 +8,45 @@ import { tenantAssignmentService } from './tenant-assignment-service';
 
 export async function setupApiRoutes(router: HttpRouter): Promise<void> {
   
-  // Temporary development authentication bypass
+  // Import credential debugger for development testing
+  const { CredentialDebugger } = await import('./credential-debug');
+
+  // Development and debugging routes
   if (process.env.NODE_ENV === 'development') {
+    // Comprehensive credential testing endpoint
+    router.get('/api/debug/credentials', async (req: HttpRequest, res: HttpResponse) => {
+      try {
+        const testResults = await CredentialDebugger.testAllRoles();
+        const sessionTests = await CredentialDebugger.validateSessionManagement();
+        
+        res.json({
+          timestamp: new Date().toISOString(),
+          environment: process.env.NODE_ENV,
+          isVercel: process.env.VERCEL === '1',
+          roleTests: testResults,
+          sessionTests,
+          status: testResults.summary.success && Object.values(sessionTests).every(Boolean) ? 'healthy' : 'issues'
+        });
+      } catch (error) {
+        console.error("Error in credential debug:", error);
+        res.status(500).json({ 
+          error: "Credential debug failed",
+          message: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    });
+
+    // Generate comprehensive debug report
+    router.get('/api/debug/report', async (req: HttpRequest, res: HttpResponse) => {
+      try {
+        const report = await CredentialDebugger.generateCredentialReport();
+        res.setHeader('Content-Type', 'text/plain');
+        res.send(report);
+      } catch (error) {
+        console.error("Error generating debug report:", error);
+        res.status(500).send(`Debug Report Generation Failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    });
     router.get('/api/auth/dev-login', async (req: HttpRequest, res: HttpResponse) => {
       try {
         console.log("Development login attempt");
