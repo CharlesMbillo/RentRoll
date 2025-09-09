@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import jwt from 'jsonwebtoken';
 
 export interface UserSession {
   id: string;
@@ -66,9 +67,18 @@ export class VercelSessionManager {
     return session;
   }
 
-  // For serverless, we encode session data in the token itself
+  // Get signing secret for JWT
+  private getSigningSecret(): string {
+    const secret = process.env.SESSION_SECRET;
+    if (!secret) {
+      throw new Error('SESSION_SECRET environment variable is required for secure session signing');
+    }
+    return secret;
+  }
+
+  // For serverless, we encode session data in a signed JWT token
   encodeSession(session: UserSession): string {
-    const sessionData = {
+    const payload = {
       id: session.id,
       userId: session.userId,
       role: session.role,
@@ -78,30 +88,76 @@ export class VercelSessionManager {
       profileImageUrl: session.profileImageUrl,
       createdAt: session.createdAt.toISOString(),
       expiresAt: session.expiresAt.toISOString(),
-      isActive: session.isActive
+      isActive: session.isActive,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(session.expiresAt.getTime() / 1000)
     };
     
-    // Simple base64 encoding for serverless (in production, use proper JWT)
-    return Buffer.from(JSON.stringify(sessionData)).toString('base64');
+    try {
+      const token = jwt.sign(payload, this.getSigningSecret(), {
+        algorithm: 'HS256',
+        issuer: 'rentflow-auth',
+        audience: 'rentflow-client'
+      });
+      
+      console.log(`🔐 JWT SESSION SIGNED: ${session.id} (${session.role})`);
+      return token;
+    } catch (error) {
+      console.error('Failed to sign JWT token:', error);
+      throw new Error('Session signing failed');
+    }
   }
 
-  decodeSession(encodedSession: string): UserSession | null {
+  // Verify and decode JWT session token
+  decodeSession(jwtToken: string): UserSession | null {
     try {
-      const sessionData = JSON.parse(Buffer.from(encodedSession, 'base64').toString());
+      const decoded = jwt.verify(jwtToken, this.getSigningSecret(), {
+        algorithms: ['HS256'],
+        issuer: 'rentflow-auth',
+        audience: 'rentflow-client'
+      }) as any;
       
-      // Check if session has expired
-      const expiresAt = new Date(sessionData.expiresAt);
-      if (new Date() > expiresAt || !sessionData.isActive) {
+      // Additional validation
+      if (!decoded.id || !decoded.userId || !decoded.role) {
+        console.error('Invalid JWT payload: missing required fields');
+        return null;
+      }
+      
+      // Check if session is still active
+      const expiresAt = new Date(decoded.expiresAt);
+      if (new Date() > expiresAt || !decoded.isActive) {
+        console.log(`Session expired or inactive: ${decoded.id}`);
+        return null;
+      }
+      
+      // Validate role
+      if (!['landlord', 'caretaker', 'tenant'].includes(decoded.role)) {
+        console.error(`Invalid role in JWT: ${decoded.role}`);
         return null;
       }
 
+      console.log(`🔐 JWT SESSION VERIFIED: ${decoded.id} (${decoded.role})`);
+      
       return {
-        ...sessionData,
-        createdAt: new Date(sessionData.createdAt),
-        expiresAt: expiresAt
+        id: decoded.id,
+        userId: decoded.userId,
+        role: decoded.role,
+        email: decoded.email,
+        firstName: decoded.firstName,
+        lastName: decoded.lastName,
+        profileImageUrl: decoded.profileImageUrl,
+        createdAt: new Date(decoded.createdAt),
+        expiresAt: expiresAt,
+        isActive: decoded.isActive
       };
     } catch (error) {
-      console.error('Failed to decode session:', error);
+      if (error instanceof jwt.TokenExpiredError) {
+        console.log('JWT token has expired');
+      } else if (error instanceof jwt.JsonWebTokenError) {
+        console.error('Invalid JWT token:', error.message);
+      } else {
+        console.error('Failed to verify JWT token:', error);
+      }
       return null;
     }
   }
@@ -118,12 +174,22 @@ export class VercelSessionManager {
 
   destroySession(sessionId: string): boolean {
     console.log(`🔐 VERCEL SESSION DESTROY REQUESTED: ${sessionId}`);
-    // In serverless environment, we can't really destroy sessions
-    // Client should remove the session token
+    // In serverless environment, we can't maintain a blacklist easily
+    // The JWT will naturally expire based on its 'exp' claim
+    // For immediate revocation, you would need to maintain a Redis/DB blacklist
+    console.log('🔐 SESSION MARKED FOR DESTRUCTION (JWT will expire naturally)');
     return true;
   }
 
   switchRole(sessionId: string, newRole: 'landlord' | 'caretaker' | 'tenant'): UserSession {
+    // Validate the existing session first
+    const currentSession = this.decodeSession(sessionId);
+    if (!currentSession) {
+      throw new Error('Invalid session for role switching');
+    }
+    
+    console.log(`🔐 ROLE SWITCH: ${currentSession.role} → ${newRole} for user ${currentSession.firstName}`);
+    
     // Create new session with the new role
     return this.createSession(newRole);
   }

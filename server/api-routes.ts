@@ -64,49 +64,70 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
       const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
       const currentSessionManager = isVercel ? vercelSessionManager : sessionManager;
       
-      console.log(`🔧 USING SESSION MANAGER: ${isVercel ? 'VERCEL' : 'LOCAL'}`);
+      console.log(`🔧 USING SESSION MANAGER: ${isVercel ? 'VERCEL (JWT)' : 'LOCAL (Memory)'}`);
+      
+      // Verify SESSION_SECRET exists for production
+      if (isVercel && !process.env.SESSION_SECRET) {
+        console.error('❌ CRITICAL: SESSION_SECRET not found in production environment');
+        return res.status(500).json({ message: "Authentication configuration error" });
+      }
       
       // Check if there's an existing valid session
       if (sessionId) {
-        const user = currentSessionManager.getUserFromSession(sessionId);
-        if (user) {
-          console.log(`✅ VALID SESSION: ${sessionId} (${user.role}: ${user.firstName} ${user.lastName})`);
-          
-          // For Vercel, return encoded session as sessionId
-          let responseSessionId: string;
-          if (isVercel && 'userId' in user && 'expiresAt' in user && 'isActive' in user) {
-            responseSessionId = vercelSessionManager.encodeSession(user as any);
+        try {
+          const user = currentSessionManager.getUserFromSession(sessionId);
+          if (user) {
+            console.log(`✅ VALID SESSION: ${sessionId.substring(0, 8)}... (${user.role}: ${user.firstName} ${user.lastName})`);
+            
+            // For Vercel, return refreshed JWT token as sessionId
+            let responseSessionId: string;
+            if (isVercel && 'userId' in user && 'expiresAt' in user && 'isActive' in user) {
+              responseSessionId = vercelSessionManager.encodeSession(user as any);
+              console.log('🔄 JWT TOKEN REFRESHED');
+            } else {
+              responseSessionId = sessionId;
+            }
+            
+            return res.json({
+              ...user,
+              sessionId: responseSessionId
+            });
           } else {
-            responseSessionId = sessionId;
+            console.log(`❌ INVALID SESSION: Token verification failed`);
+          }
+        } catch (error) {
+          console.error('❌ SESSION VALIDATION ERROR:', error instanceof Error ? error.message : 'Unknown error');
+          // Continue to create new session if role provided
+        }
+      }
+
+      // If role parameter provided, create new session with that role
+      if (roleParam && ['landlord', 'caretaker', 'tenant'].includes(roleParam)) {
+        try {
+          const session = currentSessionManager.createSession(roleParam as 'landlord' | 'caretaker' | 'tenant');
+          
+          const user = isVercel ? session : currentSessionManager.getUserFromSession(session.id);
+          let responseSessionId: string;
+          
+          if (isVercel) {
+            responseSessionId = vercelSessionManager.encodeSession(session);
+            console.log(`🔐 NEW JWT SESSION CREATED for ${roleParam.toUpperCase()}`);
+          } else {
+            responseSessionId = session.id;
+            console.log(`🔐 NEW LOCAL SESSION CREATED: ${responseSessionId} for ${roleParam.toUpperCase()}`);
           }
           
           return res.json({
             ...user,
             sessionId: responseSessionId
           });
-        } else {
-          console.log(`❌ INVALID SESSION: ${sessionId}`);
+        } catch (error) {
+          console.error('❌ SESSION CREATION ERROR:', error instanceof Error ? error.message : 'Unknown error');
+          return res.status(500).json({ 
+            message: "Failed to create session",
+            error: isVercel ? "JWT signing failed" : "Session creation failed"
+          });
         }
-      }
-
-      // If role parameter provided, create new session with that role
-      if (roleParam && ['landlord', 'caretaker', 'tenant'].includes(roleParam)) {
-        const session = currentSessionManager.createSession(roleParam as 'landlord' | 'caretaker' | 'tenant');
-        
-        const user = isVercel ? session : currentSessionManager.getUserFromSession(session.id);
-        let responseSessionId: string;
-        
-        if (isVercel) {
-          responseSessionId = vercelSessionManager.encodeSession(session);
-        } else {
-          responseSessionId = session.id;
-        }
-        
-        console.log(`🔐 NEW SESSION CREATED: ${responseSessionId} for ${roleParam.toUpperCase()}`);
-        return res.json({
-          ...user,
-          sessionId: responseSessionId
-        });
       }
 
       // No valid session or role parameter - return unauthorized
