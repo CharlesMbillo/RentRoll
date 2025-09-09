@@ -8,105 +8,49 @@ import { tenantAssignmentService } from './tenant-assignment-service';
 
 export async function setupApiRoutes(router: HttpRouter): Promise<void> {
   
-  // Import credential debugger for development testing
-  const { CredentialDebugger } = await import('./credential-debug');
+  // Production-ready authentication routes
 
-  // Development and debugging routes
-  if (process.env.NODE_ENV === 'development') {
-    // Comprehensive credential testing endpoint
-    router.get('/api/debug/credentials', async (req: HttpRequest, res: HttpResponse) => {
-      try {
-        const testResults = await CredentialDebugger.testAllRoles();
-        const sessionTests = await CredentialDebugger.validateSessionManagement();
-        
-        res.json({
-          timestamp: new Date().toISOString(),
-          environment: process.env.NODE_ENV,
-          isVercel: process.env.VERCEL === '1',
-          roleTests: testResults,
-          sessionTests,
-          status: testResults.summary.success && Object.values(sessionTests).every(Boolean) ? 'healthy' : 'issues'
-        });
-      } catch (error) {
-        console.error("Error in credential debug:", error);
-        res.status(500).json({ 
-          error: "Credential debug failed",
-          message: error instanceof Error ? error.message : 'Unknown error'
-        });
+  // Logout endpoint
+  router.get('/api/logout', async (req: HttpRequest, res: HttpResponse) => {
+    try {
+      const sessionId = req.query?.sessionId as string;
+      console.log(`🔐 LOGOUT REQUEST - SessionId: ${sessionId}`);
+      
+      // Determine which session manager to use
+      const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+      const currentSessionManager = isVercel ? vercelSessionManager : sessionManager;
+      
+      // Destroy session if exists
+      if (sessionId) {
+        const destroyed = currentSessionManager.destroySession(sessionId);
+        console.log(`🔐 SESSION DESTRUCTION RESULT: ${destroyed ? 'SUCCESS' : 'FAILED'} for ${sessionId}`);
+      } else {
+        console.log("🔐 NO SESSION ID PROVIDED FOR LOGOUT");
       }
-    });
+      
+      // Set redirect headers manually
+      res.status(302);
+      res.setHeader('Location', '/');
+      res.end();
+    } catch (error) {
+      console.error("Error in logout:", error);
+      res.status(500).json({ message: "Logout failed" });
+    }
+  });
 
-    // Generate comprehensive debug report
-    router.get('/api/debug/report', async (req: HttpRequest, res: HttpResponse) => {
-      try {
-        const report = await CredentialDebugger.generateCredentialReport();
-        res.setHeader('Content-Type', 'text/plain');
-        res.send(report);
-      } catch (error) {
-        console.error("Error generating debug report:", error);
-        res.status(500).send(`Debug Report Generation Failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-    });
-    router.get('/api/auth/dev-login', async (req: HttpRequest, res: HttpResponse) => {
-      try {
-        console.log("Development login attempt");
-        
-        const testUser = {
-          claims: { sub: 'dev-user-123' },
-          access_token: 'dev-token',
-          refresh_token: 'dev-refresh',
-          expires_at: Math.floor(Date.now() / 1000) + 3600
-        };
-        
-        res.json({ message: "Development login successful", user: testUser });
-      } catch (error) {
-        console.error("Error in development login:", error);
-        res.status(500).json({ message: "Development login failed" });
-      }
-    });
-
-    // Logout endpoint (works in both development and production)
-    router.get('/api/logout', async (req: HttpRequest, res: HttpResponse) => {
-      try {
-        const sessionId = req.query?.sessionId as string;
-        console.log(`🔐 LOGOUT REQUEST - SessionId: ${sessionId}`);
-        
-        // Determine which session manager to use
-        const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
-        const currentSessionManager = isVercel ? vercelSessionManager : sessionManager;
-        
-        // Destroy session if exists
-        if (sessionId) {
-          const destroyed = currentSessionManager.destroySession(sessionId);
-          console.log(`🔐 SESSION DESTRUCTION RESULT: ${destroyed ? 'SUCCESS' : 'FAILED'} for ${sessionId}`);
-        } else {
-          console.log("🔐 NO SESSION ID PROVIDED FOR LOGOUT");
-        }
-        
-        // Set redirect headers manually
-        res.status(302);
-        res.setHeader('Location', '/');
-        res.end();
-      } catch (error) {
-        console.error("Error in logout:", error);
-        res.status(500).json({ message: "Logout failed" });
-      }
-    });
-
-    // Development login endpoint - redirects to landing page
-    router.get('/api/login', async (req: HttpRequest, res: HttpResponse) => {
-      try {
-        console.log("🔐 LOGIN REQUEST - REDIRECTING TO LANDING PAGE");
-        // Set redirect headers manually
-        res.status(302);
-        res.setHeader('Location', '/');
-        res.end();
-      } catch (error) {
-        console.error("Error in development login:", error);
-        res.status(500).json({ message: "Login failed" });
-      }
-    });
-  }
+  // Login endpoint - redirects to landing page
+  router.get('/api/login', async (req: HttpRequest, res: HttpResponse) => {
+    try {
+      console.log("🔐 LOGIN REQUEST - REDIRECTING TO LANDING PAGE");
+      // Set redirect headers manually
+      res.status(302);
+      res.setHeader('Location', '/');
+      res.end();
+    } catch (error) {
+      console.error("Error in login:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
 
   // Auth routes
   router.get('/api/auth/user', async (req: HttpRequest, res: HttpResponse) => {
