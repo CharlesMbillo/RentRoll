@@ -8,40 +8,6 @@ import { tenantAssignmentService } from './tenant-assignment-service';
 
 export async function setupApiRoutes(router: HttpRouter): Promise<void> {
   
-  // Import deployment tester for environment validation
-  const { AuthDeploymentTester } = await import('./auth-deployment-test');
-  
-  // Development deployment testing endpoint
-  if (process.env.NODE_ENV === 'development') {
-    router.get('/api/deployment/test-auth', async (req: HttpRequest, res: HttpResponse) => {
-      try {
-        const jwtTest = await AuthDeploymentTester.testJWTSigning();
-        const envTest = await AuthDeploymentTester.testEnvironmentCompatibility();
-        
-        res.json({
-          deploymentReady: jwtTest.success && envTest.success,
-          jwtTest,
-          environmentTest: envTest,
-          timestamp: new Date().toISOString()
-        });
-      } catch (error) {
-        res.status(500).json({
-          deploymentReady: false,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
-    });
-    
-    router.get('/api/deployment/report', async (req: HttpRequest, res: HttpResponse) => {
-      try {
-        const report = await AuthDeploymentTester.generateDeploymentReport();
-        res.setHeader('Content-Type', 'text/plain');
-        res.send(report);
-      } catch (error) {
-        res.status(500).send(`Report generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-    });
-  }
   
   // Production-ready authentication routes
 
