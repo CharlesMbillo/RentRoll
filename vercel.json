@@ -2,20 +2,12 @@
   "version": 2,
   "builds": [
     {
-      "builds": [
-        {
-          "use": "@vercel/node",
-          "config": {
-            "includeFiles": ["server/**", "shared/**", "api/**"]
-          }
-        }
-      ],
-      "functions": {
-        "api/index.ts": {                  // ✅ Fixed: Matches build source
-          "maxDuration": 30
-        }
+      "src": "api/index.ts",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["server/**", "shared/**", "api/**"]
       }
-    }
+    },
     {
       "src": "client/package.json",
       "use": "@vercel/static-build",
