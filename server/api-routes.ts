@@ -1,6 +1,6 @@
 import { HttpRouter, HttpRequest, HttpResponse } from './http-router';
 import { storage } from './storage';
-import { insertTenantSchema, insertPaymentSchema, insertRoomSchema } from '@shared/schema';
+import { insertTenantSchema, insertPaymentSchema, insertRoomSchema } from '../shared/schema';
 import { z } from 'zod';
 import { sessionManager } from './session-manager';
 import { vercelSessionManager } from './vercel-session-manager';
