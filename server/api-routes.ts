@@ -5,6 +5,66 @@ import { z } from 'zod';
 import { sessionManager } from './session-manager';
 import { vercelSessionManager } from './vercel-session-manager';
 import { tenantAssignmentService } from './tenant-assignment-service';
+import { triggerMonthlyRentCollection, getBatchPaymentProcessor } from './services/batch-payment-processor';
+
+// Authentication and Authorization Middleware
+async function requireAuthentication(req: HttpRequest, res: HttpResponse): Promise<any> {
+  const sessionId = req.query?.sessionId as string || req.headers?.authorization?.replace('Bearer ', '');
+  
+  if (!sessionId) {
+    console.log('❌ Authentication failed: No session ID provided');
+    return res.status(401).json({ 
+      message: "Unauthorized: Session ID required",
+      error: "MISSING_SESSION_ID"
+    });
+  }
+
+  // Determine which session manager to use based on environment
+  const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+  const currentSessionManager = isVercel ? vercelSessionManager : sessionManager;
+  
+  try {
+    const user = currentSessionManager.getUserFromSession(sessionId);
+    if (!user) {
+      console.log('❌ Authentication failed: Invalid or expired session');
+      return res.status(401).json({ 
+        message: "Unauthorized: Invalid or expired session",
+        error: "INVALID_SESSION"
+      });
+    }
+
+    console.log(`✅ Authentication successful: ${user.role} (${user.firstName} ${user.lastName})`);
+    return user;
+  } catch (error) {
+    console.error('❌ Authentication error:', error instanceof Error ? error.message : 'Unknown error');
+    return res.status(401).json({ 
+      message: "Unauthorized: Session validation failed",
+      error: "SESSION_VALIDATION_ERROR"
+    });
+  }
+}
+
+async function requireLandlordRole(req: HttpRequest, res: HttpResponse): Promise<any> {
+  const user = await requireAuthentication(req, res);
+  
+  // If authentication failed, response is already sent
+  if (!user || res.writableEnded) {
+    return null;
+  }
+
+  if (user.role !== 'landlord') {
+    console.log(`❌ Authorization failed: User ${user.firstName} ${user.lastName} has role '${user.role}' but 'landlord' required`);
+    return res.status(403).json({ 
+      message: "Forbidden: Landlord role required for this operation",
+      error: "INSUFFICIENT_PERMISSIONS",
+      userRole: user.role,
+      requiredRole: 'landlord'
+    });
+  }
+
+  console.log(`✅ Authorization successful: Landlord ${user.firstName} ${user.lastName} authorized`);
+  return user;
+}
 
 export async function setupApiRoutes(router: HttpRouter): Promise<void> {
   
@@ -831,4 +891,102 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
       }
     });
   }
+
+  // Batch payment processing endpoints
+  router.post('/api/batch-payments/trigger', async (req: HttpRequest, res: HttpResponse) => {
+    try {
+      // 🔐 SECURITY: Require landlord authentication and authorization
+      const authorizedUser = await requireLandlordRole(req, res);
+      if (!authorizedUser || res.writableEnded) {
+        return; // Authorization failed, response already sent
+      }
+
+      const { month, testMode: clientTestMode } = req.body || {};
+      
+      // 🔒 SECURITY: Enforce testMode=true in non-production environments
+      const isProduction = process.env.NODE_ENV === 'production' && process.env.VERCEL === '1';
+      const testMode = isProduction ? (clientTestMode ?? true) : true;
+      
+      if (!isProduction && !testMode) {
+        console.log('🔒 SECURITY: Forcing testMode=true in non-production environment');
+      }
+      
+      console.log(`🚀 Batch payment trigger requested by ${authorizedUser.firstName} ${authorizedUser.lastName} (${authorizedUser.role})`);
+      console.log(`📋 Parameters - Month: ${month}, Test Mode: ${testMode}, Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
+      
+      // Use the batch payment processor to trigger monthly collection
+      const result = await triggerMonthlyRentCollection(month, testMode);
+      
+      console.log(`✅ Batch processing result:`, {
+        batchId: result.batchId,
+        totalTenants: result.totalTenants,
+        successful: result.successfulPayments,
+        failed: result.failedPayments,
+        totalAmount: result.totalAmount,
+        triggeredBy: `${authorizedUser.firstName} ${authorizedUser.lastName}`,
+        testMode
+      });
+
+      res.json({
+        success: true,
+        message: 'Batch payment processing completed',
+        data: {
+          ...result,
+          triggeredBy: authorizedUser.userId,
+          testMode,
+          environment: isProduction ? 'production' : 'development'
+        }
+      });
+    } catch (error: any) {
+      console.error('❌ Batch payment trigger failed:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Batch payment processing failed',
+        error: error.message
+      });
+    }
+  });
+
+  router.get('/api/batch-payments/status/:batchId', async (req: HttpRequest, res: HttpResponse) => {
+    try {
+      // 🔐 SECURITY: Require landlord authentication and authorization
+      const authorizedUser = await requireLandlordRole(req, res);
+      if (!authorizedUser || res.writableEnded) {
+        return; // Authorization failed, response already sent
+      }
+
+      const { batchId } = req.params || {};
+      
+      if (!batchId) {
+        console.log('❌ Batch status request failed: Missing batchId parameter');
+        return res.status(400).json({
+          success: false,
+          message: 'Batch ID is required'
+        });
+      }
+
+      console.log(`📊 Batch status requested by ${authorizedUser.firstName} ${authorizedUser.lastName} (${authorizedUser.role}) for batch: ${batchId}`);
+
+      const processor = getBatchPaymentProcessor();
+      const status = await processor.getBatchStatus(batchId);
+      
+      console.log(`✅ Batch status retrieved for ${batchId}: ${status.status} (${status.completionPercentage?.toFixed(1)}% complete)`);
+      
+      res.json({
+        success: true,
+        data: {
+          ...status,
+          accessedBy: authorizedUser.userId,
+          accessTime: new Date().toISOString()
+        }
+      });
+    } catch (error: any) {
+      console.error('❌ Failed to get batch status:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get batch status',
+        error: error.message
+      });
+    }
+  });
 }

@@ -3,6 +3,8 @@ import { createServer } from "http";
 import { HttpRouter, createLoggingMiddleware, createJsonMiddleware } from "./http-router";
 import { setupApiRoutes } from "./api-routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { initializeRentScheduler } from './services/rent-scheduler';
+import { initializeEscalationService } from './services/escalation-service';
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
@@ -62,5 +64,32 @@ process.on('uncaughtException', (error) => {
   const port = parseInt(process.env.PORT || '5000', 10);
   server.listen(port, "0.0.0.0", () => {
     log(`serving on port ${port}`);
+    
+    // Initialize the rent scheduler for automated monthly collections
+    try {
+      const scheduler = initializeRentScheduler({
+        enabled: process.env.NODE_ENV === 'production', // Only enable in production
+        testMode: process.env.NODE_ENV !== 'production', // Test mode in development
+        timezone: 'Africa/Nairobi',
+        hour: 9, // 9 AM
+        dayOfMonth: 1 // 1st of each month
+      });
+      log(`⏰ Rent scheduler initialized - Next collection: ${scheduler.getStatus().nextCheck?.toISOString()}`);
+    } catch (error: any) {
+      console.error('❌ Failed to initialize rent scheduler:', error);
+    }
+
+    // Initialize the escalation service for overdue payments
+    try {
+      const escalationService = initializeEscalationService({
+        enabled: true,
+        reminderDays: 7, // Send reminder after 7 days
+        escalationDays: 14, // Escalate to caretaker after 14 days
+        checkIntervalHours: 24, // Check daily
+      });
+      log(`⚠️ Escalation service initialized - Status: ${escalationService.getStatus().running ? 'Running' : 'Stopped'}`);
+    } catch (error: any) {
+      console.error('❌ Failed to initialize escalation service:', error);
+    }
   });
 })();

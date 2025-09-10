@@ -7,6 +7,8 @@ import { db } from '../db';
 import { batchPayments, payments, tenants, rooms, properties } from '@shared/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { getUnifiedPaymentService } from './payment-providers/unified-payment-service';
+import { validateAndFormatKenyanPhone } from './phone-validation';
+import { getSMSNotificationService } from './sms-notification-service';
 import type { 
   PaymentRequest, 
   BatchPaymentRequest, 
@@ -38,6 +40,7 @@ export interface BatchProcessingResult {
 
 export class BatchPaymentProcessor {
   private unifiedPaymentService = getUnifiedPaymentService();
+  private smsService = getSMSNotificationService();
 
   /**
    * Process monthly rent collection for all tenants
@@ -61,8 +64,24 @@ export class BatchPaymentProcessor {
 
       console.log(`👥 Found ${tenantRentData.length} tenants for rent collection`);
 
-      // Create payment requests
-      const paymentRequests = tenantRentData.map(tenant => this.createPaymentRequest(tenant, options));
+      // Create payment requests with error handling
+      const paymentResults = tenantRentData.map(tenant => {
+        const paymentRequest = this.createPaymentRequest(tenant, options);
+        return {
+          tenant: tenant.tenant,
+          room: tenant.room,
+          paymentRequest,
+          valid: paymentRequest !== null
+        };
+      });
+
+      // Separate valid and invalid payment requests
+      const validPaymentResults = paymentResults.filter(result => result.valid);
+      const invalidPaymentResults = paymentResults.filter(result => !result.valid);
+      const paymentRequests = validPaymentResults.map(result => result.paymentRequest!);
+
+      console.log(`✅ Valid payment requests: ${paymentRequests.length}`);
+      console.log(`❌ Invalid payment requests (skipped): ${invalidPaymentResults.length}`);
       
       // Calculate total amount
       const totalAmount = paymentRequests.reduce((sum, req) => sum + parseFloat(req.amount), 0);
@@ -71,7 +90,10 @@ export class BatchPaymentProcessor {
 
       if (options.testMode) {
         console.log('🧪 TEST MODE: Not sending actual payment requests');
-        return this.createTestResult(batchRecord.id, paymentRequests, totalAmount);
+        const errors = invalidPaymentResults.map(result => 
+          `Invalid phone number for tenant in room ${result.room?.roomNumber}: ${result.tenant?.phone}`
+        );
+        return this.createTestResult(batchRecord.id, paymentRequests, totalAmount, invalidPaymentResults.length, errors);
       }
 
       // Process batch payments
@@ -110,13 +132,15 @@ export class BatchPaymentProcessor {
 
       return {
         batchId: batchRecord.id,
-        totalTenants: tenantRentData.length,
+        totalTenants: validPaymentResults.length,
         totalAmount: totalAmount.toFixed(2),
         successfulPayments: batchResponse.successfulPayments,
-        failedPayments: batchResponse.failedPayments,
+        failedPayments: batchResponse.failedPayments + invalidPaymentResults.length,
         pendingPayments: batchResponse.pendingPayments,
         processingTime,
-        errors: [],
+        errors: invalidPaymentResults.map(result => 
+          `Invalid phone number for tenant in room ${result.room?.roomNumber}: ${result.tenant?.phone}`
+        ),
       };
 
     } catch (error: any) {
@@ -151,7 +175,7 @@ export class BatchPaymentProcessor {
       const retryRequests = failedPayments.map(payment => ({
         phoneNumber: payment.phoneNumber || '',
         amount: payment.amount,
-        reference: `RETRY-${payment.reference}`,
+        reference: `Retry-${payment.reference}`,
         description: `Retry rent payment for ${payment.month}`,
       }));
 
@@ -253,13 +277,27 @@ export class BatchPaymentProcessor {
     return filteredResults;
   }
 
-  private createPaymentRequest(tenantData: any, options: MonthlyRentBatchOptions): PaymentRequest {
+  private createPaymentRequest(tenantData: any, options: MonthlyRentBatchOptions): PaymentRequest | null {
     const { tenant, room, property } = tenantData;
     
+    // Validate and format phone number according to 2547XXXXXXXX standard
+    let validatedPhone: string;
+    try {
+      validatedPhone = validateAndFormatKenyanPhone(tenant.phone);
+      console.log(`📱 Phone validated: ${tenant.phone} -> ${validatedPhone}`);
+    } catch (error: any) {
+      console.error(`❌ Invalid phone number for tenant ${tenant.id} in room ${room.roomNumber}: ${tenant.phone} - ${error.message}`);
+      // Return null to mark this tenant as failed instead of throwing
+      return null;
+    }
+    
+    // Generate reference in format: Rent-{Month}-{RoomNumber}
+    const reference = `Rent-${options.month}-${room.roomNumber}`;
+    
     return {
-      phoneNumber: tenant.phone,
+      phoneNumber: validatedPhone,
       amount: room.rentAmount,
-      reference: `RENT-${options.month}-${room.roomNumber}-${Date.now()}`,
+      reference,
       description: `Rent payment for ${room.roomNumber} - ${options.month}`,
       accountReference: tenant.id,
       transactionDesc: `${property?.name || 'Property'} Room ${room.roomNumber} rent for ${options.month}`,
@@ -342,7 +380,12 @@ export class BatchPaymentProcessor {
       };
     });
 
-    await db.insert(payments).values(paymentRecords);
+    const insertedPayments = await db.insert(payments).values(paymentRecords).returning();
+    
+    // Send SMS receipts for successful payments (don't block on failures)
+    this.sendReceiptsForSuccessfulPayments(insertedPayments).catch(error => {
+      console.error('❌ Failed to send SMS receipts:', error);
+    });
   }
 
   private createErrorResult(batchId: string, errorMessage: string): BatchProcessingResult {
@@ -361,18 +404,45 @@ export class BatchPaymentProcessor {
   private createTestResult(
     batchId: string, 
     paymentRequests: PaymentRequest[], 
-    totalAmount: number
+    totalAmount: number,
+    invalidCount: number = 0,
+    errors: string[] = []
   ): BatchProcessingResult {
     return {
       batchId,
       totalTenants: paymentRequests.length,
       totalAmount: totalAmount.toFixed(2),
       successfulPayments: paymentRequests.length, // Simulate success in test mode
-      failedPayments: 0,
+      failedPayments: invalidCount,
       pendingPayments: 0,
       processingTime: 0,
-      errors: [],
+      errors,
     };
+  }
+
+  /**
+   * Send SMS receipts for successful payments (async, non-blocking)
+   */
+  private async sendReceiptsForSuccessfulPayments(paymentRecords: any[]): Promise<void> {
+    const successfulPayments = paymentRecords.filter(payment => 
+      payment.paymentStatus === 'completed' && payment.paidDate
+    );
+
+    if (successfulPayments.length === 0) {
+      return;
+    }
+
+    console.log(`📱 Sending SMS receipts for ${successfulPayments.length} successful payments`);
+
+    for (const payment of successfulPayments) {
+      try {
+        await this.smsService.sendPaymentReceipt(payment.id);
+        await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay between SMS sends
+      } catch (error: any) {
+        console.error(`❌ Failed to send SMS receipt for payment ${payment.id}:`, error.message);
+        // Continue with other receipts even if one fails
+      }
+    }
   }
 }
 
