@@ -8,10 +8,10 @@ import { tenantAssignmentService } from './tenant-assignment-service';
 import { triggerMonthlyRentCollection, getBatchPaymentProcessor } from './services/batch-payment-processor';
 
 // Helper function to extract JWT session from cookies
-function extractJWTFromCookies(req: HttpRequest): string | null {
+function extractJWTFromCookies(req: HttpRequest): string | undefined {
   const cookieHeader = req.headers.cookie;
   if (!cookieHeader) {
-    return null;
+    return undefined;
   }
   
   // Parse cookies to find rf.session (app-specific JWT cookie)
@@ -21,7 +21,7 @@ function extractJWTFromCookies(req: HttpRequest): string | null {
     return acc;
   }, {});
   
-  return cookies['rf.session'] || null;
+  return cookies['rf.session'] || undefined;
 }
 
 // Authentication and Authorization Middleware  
