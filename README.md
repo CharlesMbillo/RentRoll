@@ -14,7 +14,13 @@ A comprehensive rental property management platform designed for rent collection
 - **Property Analytics**: Real-time occupancy rates and revenue tracking
 
 ### 💰 Payment Processing
-- **M-Pesa Integration**: STK Push payment processing with real-time webhook updates
+- **Multi-Provider Integration**: Unified payment system supporting major Kenyan payment providers
+  - **Jenga API**: Full-featured payment processing with STK Push, B2C, B2B transfers
+  - **Safaricom M-Pesa**: Direct M-Pesa integration with STK Push and webhooks
+  - **COOP Bank**: Cooperative bank payment processing and transfers
+- **Smart Provider Selection**: Automatic provider failover and capability-based routing
+- **Real-time Webhooks**: Secure webhook handling with signature verification across all providers
+- **Batch Payment Processing**: Monthly rent collection with automated retry logic
 - **Payment Status Tracking**: Comprehensive payment history and status monitoring
 - **Automated Reminders**: SMS notifications for upcoming and overdue payments
 
@@ -35,7 +41,10 @@ A comprehensive rental property management platform designed for rent collection
 ### Prerequisites
 - Node.js 18+
 - PostgreSQL database (or Neon account)
-- M-Pesa API credentials (optional, for payment processing)
+- Payment provider credentials (optional, for payment processing)
+  - Jenga API credentials for full-featured payment processing
+  - M-Pesa API credentials for direct M-Pesa integration  
+  - COOP Bank API credentials for cooperative bank integration
 
 ### Setup
 
@@ -56,18 +65,40 @@ A comprehensive rental property management platform designed for rent collection
    # Database
    DATABASE_URL=postgresql://username:password@localhost:5432/rentflow
    
-   # Authentication
+   # Authentication  
    SESSION_SECRET=your-super-secret-jwt-signing-key-here
    
-   # M-Pesa Integration (Optional)
-   MPESA_CONSUMER_KEY=your-mpesa-consumer-key
-   MPESA_CONSUMER_SECRET=your-mpesa-consumer-secret
-   MPESA_PASSKEY=your-mpesa-passkey
-   MPESA_SHORTCODE=your-business-shortcode
+   # Jenga Payment Provider (Optional - Recommended for full features)
+   JENGA_API_KEY=your-jenga-api-key
+   JENGA_CONSUMER_KEY=your-jenga-consumer-key
+   JENGA_CONSUMER_SECRET=your-jenga-consumer-secret
+   JENGA_MERCHANT_CODE=your-jenga-merchant-code
+   JENGA_BASE_URL=https://api-test.equitybankgroup.com  # Use production URL for live
+   JENGA_CALLBACK_URL=https://your-domain.com/api/webhooks/jenga
+   
+   # Safaricom M-Pesa Provider (Optional)
+   SAFARICOM_CONSUMER_KEY=your-safaricom-consumer-key
+   SAFARICOM_CONSUMER_SECRET=your-safaricom-consumer-secret
+   SAFARICOM_PASSKEY=your-safaricom-passkey
+   SAFARICOM_SHORTCODE=your-business-shortcode
+   SAFARICOM_BASE_URL=https://sandbox.safaricom.co.ke  # Use production URL for live
+   SAFARICOM_CALLBACK_URL=https://your-domain.com/api/webhooks/safaricom
+   
+   # COOP Bank Provider (Optional)  
+   COOP_API_KEY=your-coop-api-key
+   COOP_CONSUMER_KEY=your-coop-consumer-key
+   COOP_CONSUMER_SECRET=your-coop-consumer-secret
+   COOP_MERCHANT_CODE=your-coop-merchant-code
+   COOP_BASE_URL=https://developer.co-opbank.co.ke  # Use production URL for live
+   COOP_CALLBACK_URL=https://your-domain.com/api/webhooks/coop
    
    # SMS Service (Optional)
    SMS_API_KEY=your-sms-provider-api-key
    SMS_SENDER_ID=your-sender-id
+   
+   # Application Settings
+   NODE_ENV=development  # Set to 'production' for live deployment
+   BASE_URL=http://localhost:5000  # Your application base URL
    ```
 
 4. **Database Setup**
@@ -119,8 +150,16 @@ A comprehensive rental property management platform designed for rent collection
 │   │   ├── pages/       # Application pages
 │   │   └── hooks/       # Custom React hooks
 ├── server/           # Express backend
-│   ├── api-routes.ts    # API route definitions
-│   ├── session-manager.ts # Session management
+│   ├── api-routes.ts         # API route definitions
+│   ├── session-manager.ts    # Session management
+│   ├── services/
+│   │   ├── payment-providers/    # Unified payment system
+│   │   │   ├── jenga-provider.ts     # Jenga API integration
+│   │   │   ├── safaricom-provider.ts # M-Pesa integration  
+│   │   │   ├── coop-provider.ts      # COOP Bank integration
+│   │   │   ├── unified-payment-service.ts # Provider orchestration
+│   │   │   └── webhook-handler.ts    # Secure webhook processing
+│   │   └── batch-payment-processor.ts # Monthly rent collection
 │   └── index.ts         # Server entry point
 ├── shared/           # Shared types and schemas
 └── api/              # Vercel serverless functions
@@ -155,7 +194,8 @@ A comprehensive rental property management platform designed for rent collection
 3. **Dashboard Navigation**: Use the sidebar to access different features based on your role
 4. **Room Matrix**: View and manage property status through the interactive room grid
 5. **Tenant Management**: Add, edit, and assign tenants to rooms
-6. **Payment Processing**: Process payments through M-Pesa integration
+6. **Payment Processing**: Process payments through the unified payment system (Jenga, M-Pesa, COOP)
+7. **Provider Health**: Monitor payment provider status and capabilities through the admin dashboard
 
 ## API Endpoints
 
@@ -178,7 +218,15 @@ A comprehensive rental property management platform designed for rent collection
 ### Payments
 - `GET /api/payments` - List payments
 - `POST /api/payments` - Create payment
-- `POST /api/mpesa/stk-push` - Initiate M-Pesa payment
+- `POST /api/payments/stk-push` - Initiate payment via unified provider system
+- `POST /api/payments/batch` - Process batch payments for monthly rent collection
+
+### Payment Providers
+- `GET /api/providers/health` - Check health status of all payment providers
+- `GET /api/providers/capabilities` - Get capability matrix for each provider  
+- `POST /api/webhooks/jenga` - Jenga payment webhook callback
+- `POST /api/webhooks/safaricom` - Safaricom M-Pesa webhook callback
+- `POST /api/webhooks/coop` - COOP Bank webhook callback
 
 ### Dashboard
 - `GET /api/dashboard/metrics` - Get dashboard analytics
@@ -229,6 +277,9 @@ The application uses the following core tables:
 - **rooms**: Individual room/unit data with status tracking
 - **tenants**: Tenant information and contact details
 - **payments**: Payment records with status and audit trail
+- **payment_providers**: Configuration and status tracking for payment providers
+- **batch_payments**: Monthly rent collection batch processing records
+- **reconciliation_records**: Payment reconciliation and audit trail
 - **sessions**: Secure session storage for authentication
 
 ## Security Features
@@ -236,8 +287,11 @@ The application uses the following core tables:
 - **JWT Authentication**: Secure token-based authentication with signature verification
 - **Role-Based Access**: Granular permissions based on user roles
 - **Session Management**: Secure session handling with automatic expiration
+- **Webhook Verification**: Mandatory signature verification for all payment provider webhooks
 - **Input Validation**: Comprehensive request validation using Zod schemas
 - **SQL Injection Protection**: Parameterized queries through Drizzle ORM
+- **Payment Security**: End-to-end encryption for all payment processing
+- **Audit Trail**: Complete logging of all financial transactions and security events
 
 ## Contributing
 
