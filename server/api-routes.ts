@@ -7,26 +7,50 @@ import { vercelSessionManager } from './vercel-session-manager';
 import { tenantAssignmentService } from './tenant-assignment-service';
 import { triggerMonthlyRentCollection, getBatchPaymentProcessor } from './services/batch-payment-processor';
 
-// Authentication and Authorization Middleware
-async function requireAuthentication(req: HttpRequest, res: HttpResponse): Promise<any> {
-  const sessionId = req.query?.sessionId as string || req.headers?.authorization?.replace('Bearer ', '');
+// Helper function to extract JWT session from cookies
+function extractJWTFromCookies(req: HttpRequest): string | null {
+  const cookieHeader = req.headers.cookie;
+  if (!cookieHeader) {
+    return null;
+  }
   
-  if (!sessionId) {
-    console.log('❌ Authentication failed: No session ID provided');
+  // Parse cookies to find rf.session (app-specific JWT cookie)
+  const cookies = cookieHeader.split(';').reduce((acc: any, cookie) => {
+    const [name, value] = cookie.trim().split('=');
+    acc[name] = value;
+    return acc;
+  }, {});
+  
+  return cookies['rf.session'] || null;
+}
+
+// Authentication and Authorization Middleware  
+async function requireAuthentication(req: HttpRequest, res: HttpResponse): Promise<any> {
+  // Try Authorization header first, then rf.session cookie
+  let sessionToken = req.headers?.authorization?.replace('Bearer ', '');
+  
+  if (!sessionToken) {
+    sessionToken = extractJWTFromCookies(req);
+  }
+  
+  // Also support sessionId query param for backward compatibility
+  if (!sessionToken) {
+    sessionToken = req.query?.sessionId as string;
+  }
+  
+  if (!sessionToken) {
+    console.log('❌ Authentication failed: No session token provided');
     return res.status(401).json({ 
-      message: "Unauthorized: Session ID required",
-      error: "MISSING_SESSION_ID"
+      message: "Unauthorized: Session token required",
+      error: "MISSING_SESSION_TOKEN"
     });
   }
 
-  // Determine which session manager to use based on environment
-  const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
-  const currentSessionManager = isVercel ? vercelSessionManager : sessionManager;
-  
+  // Always use vercelSessionManager for JWT validation (unified approach)
   try {
-    const user = currentSessionManager.getUserFromSession(sessionId);
+    const user = await vercelSessionManager.getUserFromSession(sessionToken);
     if (!user) {
-      console.log('❌ Authentication failed: Invalid or expired session');
+      console.log('❌ Authentication failed: Invalid or expired session token');
       return res.status(401).json({ 
         message: "Unauthorized: Invalid or expired session",
         error: "INVALID_SESSION"
@@ -113,87 +137,102 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
     }
   });
 
+  // =======================================
+  // AUTHENTICATION & AUTHORIZATION HELPERS
+  // =======================================
+
+  /**
+   * Extract session ID from cookies (used by Express sessions)
+   */
+  function extractSessionIdFromCookies(req: HttpRequest): string | null {
+    const cookieHeader = req.headers.cookie;
+    if (!cookieHeader) {
+      return null;
+    }
+    
+    // Parse cookies to find connect.sid (default express-session cookie name)
+    const cookies = cookieHeader.split(';').reduce((acc: any, cookie) => {
+      const [name, value] = cookie.trim().split('=');
+      acc[name] = value;
+      return acc;
+    }, {});
+    
+    // Extract session ID (remove 's:' prefix if present)
+    let sessionId = cookies['connect.sid'];
+    if (sessionId && sessionId.startsWith('s:')) {
+      sessionId = sessionId.slice(2).split('.')[0]; // Remove signature
+    }
+    
+    return sessionId;
+  }
+
   // Auth routes
   router.get('/api/auth/user', async (req: HttpRequest, res: HttpResponse) => {
     try {
       const roleParam = req.query?.role as string;
-      const sessionId = req.query?.sessionId as string;
+      let sessionToken = req.headers?.authorization?.replace('Bearer ', '') || 
+                        extractJWTFromCookies(req) || 
+                        req.query?.sessionId as string;
       
-      console.log(`🔐 AUTH REQUEST: role=${roleParam}, sessionId=${sessionId}`);
+      console.log(`🔐 AUTH REQUEST: role=${roleParam}, sessionToken=${sessionToken ? 'present' : 'undefined'}`);
       
-      // Determine which session manager to use based on environment
-      const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
-      const currentSessionManager = isVercel ? vercelSessionManager : sessionManager;
+      let user = null;
       
-      console.log(`🔧 USING SESSION MANAGER: ${isVercel ? 'VERCEL (JWT)' : 'LOCAL (Memory)'}`);
-      
-      // Verify SESSION_SECRET exists for production
-      if (isVercel && !process.env.SESSION_SECRET) {
-        console.error('❌ CRITICAL: SESSION_SECRET not found in production environment');
-        return res.status(500).json({ message: "Authentication configuration error" });
+      if (sessionToken) {
+        user = await vercelSessionManager.getUserFromSession(sessionToken);
       }
       
-      // Check if there's an existing valid session
-      if (sessionId) {
-        try {
-          const user = currentSessionManager.getUserFromSession(sessionId);
-          if (user) {
-            console.log(`✅ VALID SESSION: ${sessionId.substring(0, 8)}... (${user.role}: ${user.firstName} ${user.lastName})`);
-            
-            // For Vercel, return refreshed JWT token as sessionId
-            let responseSessionId: string;
-            if (isVercel && 'userId' in user && 'expiresAt' in user && 'isActive' in user) {
-              responseSessionId = vercelSessionManager.encodeSession(user as any);
-              console.log('🔄 JWT TOKEN REFRESHED');
-            } else {
-              responseSessionId = sessionId;
-            }
-            
-            return res.json({
-              ...user,
-              sessionId: responseSessionId
-            });
-          } else {
-            console.log(`❌ INVALID SESSION: Token verification failed`);
-          }
-        } catch (error) {
-          console.error('❌ SESSION VALIDATION ERROR:', error instanceof Error ? error.message : 'Unknown error');
-          // Continue to create new session if role provided
-        }
+      // Support role switching for development/testing
+      if (roleParam && !user) {
+        console.log(`⚠️ Creating JWT session for role: ${roleParam}`);
+        
+        // Create test user data based on role
+        const testUserData = {
+          id: `test-${roleParam}-user`,
+          email: `${roleParam}@test.com`,
+          firstName: roleParam === 'landlord' ? 'Admin' : 
+                   roleParam === 'caretaker' ? 'Care' : 'Test',
+          lastName: roleParam === 'landlord' ? 'Manager' : 
+                   roleParam === 'caretaker' ? 'Taker' : 'User',
+          role: roleParam as 'landlord' | 'caretaker' | 'tenant',
+          profileImageUrl: null,
+        };
+        
+        // Create session and encode as JWT token
+        const session = vercelSessionManager.createSession(roleParam as 'landlord' | 'caretaker' | 'tenant');
+        const jwtToken = vercelSessionManager.encodeSession(session);
+        user = testUserData;
+        
+        console.log(`✅ JWT session created for ${roleParam}`);
+        
+        // Set HTTP-only cookie for browser security
+        const isProduction = process.env.NODE_ENV === 'production' && process.env.VERCEL === '1';
+        const cookieOptions = `HttpOnly; SameSite=Lax; Path=/; Max-Age=604800${isProduction ? '; Secure' : ''}`; // 7 days
+        res.setHeader('Set-Cookie', `rf.session=${jwtToken}; ${cookieOptions}`);
+        
+        // Return the session token for frontend Authorization headers
+        return res.json({
+          user,
+          sessionToken: jwtToken,
+          sessionId: jwtToken,  // Also include sessionId for backward compatibility
+          role: roleParam,
+          message: "JWT session created successfully"
+        });
       }
-
-      // If role parameter provided, create new session with that role
-      if (roleParam && ['landlord', 'caretaker', 'tenant'].includes(roleParam)) {
-        try {
-          const session = currentSessionManager.createSession(roleParam as 'landlord' | 'caretaker' | 'tenant');
-          
-          const user = isVercel ? session : currentSessionManager.getUserFromSession(session.id);
-          let responseSessionId: string;
-          
-          if (isVercel) {
-            responseSessionId = vercelSessionManager.encodeSession(session);
-            console.log(`🔐 NEW JWT SESSION CREATED for ${roleParam.toUpperCase()}`);
-          } else {
-            responseSessionId = session.id;
-            console.log(`🔐 NEW LOCAL SESSION CREATED: ${responseSessionId} for ${roleParam.toUpperCase()}`);
-          }
-          
-          return res.json({
-            ...user,
-            sessionId: responseSessionId
-          });
-        } catch (error) {
-          console.error('❌ SESSION CREATION ERROR:', error instanceof Error ? error.message : 'Unknown error');
-          return res.status(500).json({ 
-            message: "Failed to create session",
-            error: isVercel ? "JWT signing failed" : "Session creation failed"
-          });
-        }
+      
+      if (!user) {
+        console.log('❌ INVALID SESSION: Token verification failed');
+        console.log('❌ NO VALID SESSION OR ROLE - UNAUTHORIZED');
+        return res.status(401).json({ message: "Unauthorized" });
       }
-
-      // No valid session or role parameter - return unauthorized
-      console.log("❌ NO VALID SESSION OR ROLE - UNAUTHORIZED");
-      return res.status(401).json({ message: "Unauthorized" });
+      
+      res.json({ 
+        user,
+        sessionToken,
+        sessionId: sessionToken, // For backward compatibility
+        role: user.role,
+        message: "Authentication successful"
+      });
       
     } catch (error) {
       console.error("Error in auth/user:", error);
