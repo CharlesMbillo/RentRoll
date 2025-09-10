@@ -622,6 +622,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Unified Payment Provider endpoints
+  app.get('/api/providers/health', async (req, res) => {
+    try {
+      const { getUnifiedPaymentService } = await import('./services/payment-providers/unified-payment-service');
+      const unifiedService = getUnifiedPaymentService();
+      
+      const healthStatus = await unifiedService.checkAllProvidersHealth();
+      res.json({
+        timestamp: new Date().toISOString(),
+        providers: healthStatus,
+        overall: Object.values(healthStatus).some(status => status) ? 'healthy' : 'unhealthy'
+      });
+    } catch (error) {
+      console.error("Error checking provider health:", error);
+      res.status(500).json({ 
+        error: 'Failed to check provider health',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  app.get('/api/providers/capabilities', async (req, res) => {
+    try {
+      const { getUnifiedPaymentService } = await import('./services/payment-providers/unified-payment-service');
+      const unifiedService = getUnifiedPaymentService();
+      
+      const capabilities = await unifiedService.getProviderCapabilities();
+      res.json({
+        timestamp: new Date().toISOString(),
+        providers: capabilities
+      });
+    } catch (error) {
+      console.error("Error fetching provider capabilities:", error);
+      res.status(500).json({ 
+        error: 'Failed to fetch provider capabilities',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Unified webhook handler
+  app.post('/api/webhooks/:provider', async (req, res) => {
+    try {
+      const { provider } = req.params;
+      const { getUnifiedWebhookHandler } = await import('./services/payment-providers/webhook-handler');
+      const webhookHandler = getUnifiedWebhookHandler();
+
+      switch (provider.toLowerCase()) {
+        case 'jenga':
+          await webhookHandler.processJengaWebhook(req, res);
+          break;
+        case 'safaricom':
+          await webhookHandler.processSafaricomWebhook(req, res);
+          break;
+        case 'coop':
+          await webhookHandler.processCoopWebhook(req, res);
+          break;
+        default:
+          res.status(400).json({ error: `Unknown payment provider: ${provider}` });
+      }
+    } catch (error) {
+      console.error(`Error processing ${req.params.provider} webhook:`, error);
+      res.status(500).json({ error: 'Webhook processing failed' });
+    }
+  });
+
+  // Payment status checking
+  app.get('/api/payments/:transactionId/status/:provider', async (req, res) => {
+    try {
+      const { transactionId, provider } = req.params;
+      const { getUnifiedPaymentService } = await import('./services/payment-providers/unified-payment-service');
+      const unifiedService = getUnifiedPaymentService();
+      
+      const status = await unifiedService.checkPaymentStatus(transactionId, provider as any);
+      res.json(status);
+    } catch (error) {
+      console.error("Error checking payment status:", error);
+      res.status(500).json({ error: 'Failed to check payment status' });
+    }
+  });
+
+  // Batch payment processing
+  app.post('/api/payments/batch/rent-collection', async (req, res) => {
+    try {
+      const { month, testMode, providerId } = req.body;
+      const { triggerMonthlyRentCollection } = await import('./services/batch-payment-processor');
+      
+      const result = await triggerMonthlyRentCollection(month, testMode);
+      res.json(result);
+    } catch (error) {
+      console.error("Error processing batch rent collection:", error);
+      res.status(500).json({ error: 'Batch rent collection failed' });
+    }
+  });
+
   // JengaAPI Health Check endpoint
   app.get('/api/jenga/health', async (req, res) => {
     try {
