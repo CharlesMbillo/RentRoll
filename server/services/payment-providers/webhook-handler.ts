@@ -30,6 +30,19 @@ export class UnifiedWebhookHandler {
     try {
       console.log('🔄 Processing Jenga webhook:', req.body);
       
+      // SECURITY: Always verify webhook signature before processing
+      const provider = this.unifiedPaymentService.getProvider('jenga');
+      const isValid = await provider.verifyWebhookCallback(req.body);
+      
+      if (!isValid) {
+        console.warn('🚫 SECURITY VIOLATION: Invalid Jenga webhook signature detected', {
+          ip: req.ip,
+          userAgent: req.get('User-Agent'),
+          timestamp: new Date().toISOString()
+        });
+        return res.status(401).json({ success: false, message: 'Invalid webhook signature' });
+      }
+      
       const result = await this.processProviderWebhook('jenga', req.body);
       
       if (result.success) {
@@ -39,6 +52,9 @@ export class UnifiedWebhookHandler {
       }
     } catch (error: any) {
       console.error('❌ Jenga webhook processing failed:', error);
+      if (error.message?.includes('Invalid webhook callback')) {
+        return res.status(401).json({ success: false, message: 'Webhook verification failed' });
+      }
       res.status(500).json({ success: false, message: 'Internal server error' });
     }
   }
@@ -49,6 +65,22 @@ export class UnifiedWebhookHandler {
   async processSafaricomWebhook(req: Request, res: Response): Promise<void> {
     try {
       console.log('🔄 Processing Safaricom webhook:', req.body);
+      
+      // SECURITY: Always verify webhook signature before processing
+      const provider = this.unifiedPaymentService.getProvider('safaricom');
+      const isValid = await provider.verifyWebhookCallback(req.body);
+      
+      if (!isValid) {
+        console.warn('🚫 SECURITY VIOLATION: Invalid Safaricom webhook signature detected', {
+          ip: req.ip,
+          userAgent: req.get('User-Agent'),
+          timestamp: new Date().toISOString()
+        });
+        return res.status(200).json({ 
+          ResultCode: 1, 
+          ResultDesc: 'Invalid webhook signature - authentication failed'
+        });
+      }
       
       const result = await this.processProviderWebhook('safaricom', req.body);
       
@@ -66,6 +98,12 @@ export class UnifiedWebhookHandler {
       }
     } catch (error: any) {
       console.error('❌ Safaricom webhook processing failed:', error);
+      if (error.message?.includes('Invalid webhook callback')) {
+        return res.status(200).json({ 
+          ResultCode: 1, 
+          ResultDesc: 'Webhook verification failed' 
+        });
+      }
       res.status(200).json({ 
         ResultCode: 1, 
         ResultDesc: 'Internal server error' 
@@ -80,6 +118,19 @@ export class UnifiedWebhookHandler {
     try {
       console.log('🔄 Processing COOP webhook:', req.body);
       
+      // SECURITY: Always verify webhook signature before processing
+      const provider = this.unifiedPaymentService.getProvider('coop');
+      const isValid = await provider.verifyWebhookCallback(req.body);
+      
+      if (!isValid) {
+        console.warn('🚫 SECURITY VIOLATION: Invalid COOP webhook signature detected', {
+          ip: req.ip,
+          userAgent: req.get('User-Agent'),
+          timestamp: new Date().toISOString()
+        });
+        return res.status(401).json({ success: false, message: 'Invalid webhook signature' });
+      }
+      
       const result = await this.processProviderWebhook('coop', req.body);
       
       if (result.success) {
@@ -89,12 +140,16 @@ export class UnifiedWebhookHandler {
       }
     } catch (error: any) {
       console.error('❌ COOP webhook processing failed:', error);
+      if (error.message?.includes('Invalid webhook callback')) {
+        return res.status(401).json({ success: false, message: 'Webhook verification failed' });
+      }
       res.status(500).json({ success: false, message: 'Internal server error' });
     }
   }
 
   /**
    * Generic webhook processor for any provider
+   * NOTE: Webhook signature verification must be done by caller before calling this method
    */
   private async processProviderWebhook(
     providerType: PaymentProviderType, 
@@ -102,6 +157,7 @@ export class UnifiedWebhookHandler {
   ): Promise<WebhookProcessingResult> {
     try {
       // Process webhook through unified service
+      // SECURITY NOTE: Signature verification is already handled by individual webhook methods
       const webhookCallback = await this.unifiedPaymentService.processWebhookCallback(
         webhookData, 
         providerType

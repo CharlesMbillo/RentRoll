@@ -249,18 +249,23 @@ export class JengaPaymentProvider implements PaymentProvider {
 // Factory function to create Jenga provider
 export function createJengaProvider(): JengaPaymentProvider {
   // Load configuration with validation - will be handled asynchronously in unified service
+  const hasJengaCredentials = !!(process.env.JENGA_API_KEY && process.env.JENGA_MERCHANT_CODE && process.env.JENGA_CONSUMER_SECRET);
+  
   const config: ProviderConfig = {
-    enabled: !!(process.env.JENGA_API_KEY && process.env.JENGA_MERCHANT_CODE && process.env.JENGA_CONSUMER_SECRET),
+    // Enable in development mode for testing, or when credentials are available
+    enabled: process.env.NODE_ENV === 'development' || hasJengaCredentials,
     sandbox: process.env.NODE_ENV !== 'production',
     baseUrl: process.env.JENGA_BASE_URL || 'https://sandbox.jengahq.io',
-    apiKey: process.env.JENGA_API_KEY || '',
-    consumerKey: process.env.JENGA_CONSUMER_KEY || '',
-    consumerSecret: process.env.JENGA_CONSUMER_SECRET || '',
-    merchantCode: process.env.JENGA_MERCHANT_CODE || '',
+    apiKey: process.env.JENGA_API_KEY || 'dev-key',
+    consumerKey: process.env.JENGA_CONSUMER_KEY || 'dev-consumer-key',
+    consumerSecret: process.env.JENGA_CONSUMER_SECRET || 'dev-secret',
+    merchantCode: process.env.JENGA_MERCHANT_CODE || 'dev-merchant',
     callbackUrl: process.env.JENGA_CALLBACK_URL || `${process.env.BASE_URL || 'http://localhost:5000'}/api/webhooks/jenga`,
     timeout: 30000,
   };
 
+  console.log(`🔧 Jenga Provider Config: enabled=${config.enabled}, hasCredentials=${hasJengaCredentials}`);
+  
   return new JengaPaymentProvider(config);
 }
 

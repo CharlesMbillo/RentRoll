@@ -342,103 +342,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // JengaAPI M-Pesa STK Push
-  app.post('/api/mpesa/stk-push', async (req, res) => {
-    try {
-      const { phoneNumber, amount, roomId, tenantId } = req.body;
-      
-      // Validate required fields
-      if (!phoneNumber || !amount || !tenantId) {
-        return res.status(400).json({ message: "Missing required fields" });
-      }
-
-      // Get tenant and room details
-      const tenant = await storage.getTenant(tenantId);
-      const room = roomId ? await storage.getRoom(roomId) : null;
-
-      if (!tenant) {
-        return res.status(404).json({ message: "Tenant not found" });
-      }
-
-      // Create payment record first
-      const currentDate = new Date();
-      const month = currentDate.toISOString().slice(0, 7);
-      const year = currentDate.getFullYear();
-      const reference = `RENT-${roomId || 'PAYMENT'}-${Date.now()}`;
-
-      const paymentData = {
-        tenantId,
-        roomId: roomId || null,
-        amount: amount.toString(),
-        paymentMethod: "mpesa" as const,
-        paymentStatus: "pending" as const,
-        dueDate: currentDate,
-        month,
-        year,
-        notes: `STK Push initiated to ${phoneNumber} for ${tenant.firstName} ${tenant.lastName}`,
-      };
-
-      const payment = await storage.createPayment(paymentData);
-
-      // If JengaAPI is configured, send actual STK Push
-      if (process.env.JENGA_API_KEY && process.env.JENGA_MERCHANT_CODE && process.env.JENGA_CONSUMER_SECRET) {
-        try {
-          const { createJengaApiClient } = await import('./services/jengaApi');
-          const jengaClient = createJengaApiClient();
-          
-          const description = room 
-            ? `Rent payment for Room ${room.roomNumber}` 
-            : `Payment from ${tenant.firstName} ${tenant.lastName}`;
-
-          const jengaResponse = await jengaClient.sendMpesaSTKPush(
-            phoneNumber,
-            amount,
-            reference,
-            description
-          );
-
-          // Update payment with JengaAPI transaction ID
-          await storage.updatePayment(payment.id, {
-            notes: `${paymentData.notes} - JengaAPI Transaction: ${jengaResponse.transactionId}`,
-          });
-
-          res.json({
-            success: true,
-            message: "STK Push sent successfully",
-            paymentId: payment.id,
-            transactionId: jengaResponse.transactionId,
-            reference: reference,
-          });
-        } catch (jengaError: any) {
-          console.error("JengaAPI STK Push failed:", jengaError);
-          
-          // Update payment status to failed
-          await storage.updatePayment(payment.id, {
-            paymentStatus: "failed",
-            notes: `${paymentData.notes} - JengaAPI Error: ${jengaError.message}`,
-          });
-
-          res.status(500).json({ 
-            message: "Payment request failed",
-            paymentId: payment.id,
-            error: "STK Push could not be processed"
-          });
-        }
-      } else {
-        // Development mode - simulate successful STK Push
-        res.json({
-          success: true,
-          message: "STK Push initiated successfully (Development Mode)",
-          paymentId: payment.id,
-          reference: reference,
-          note: "JengaAPI credentials not configured - using development mode"
-        });
-      }
-    } catch (error) {
-      console.error("Error initiating STK Push:", error);
-      res.status(500).json({ message: "Failed to initiate STK Push" });
-    }
-  });
+  // REMOVED: /api/mpesa/stk-push - Now handled by unified payment service in server/api-routes.ts
+  // This endpoint has been deprecated to prevent conflicts with the unified payment system
 
   // SMS Notification routes
   app.get('/api/sms-notifications', async (req, res) => {
@@ -514,141 +419,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // JengaAPI Webhook/Callback endpoint
-  app.post('/api/jenga/webhook', async (req, res) => {
-    try {
-      const callbackData = req.body;
-      console.log('JengaAPI Webhook received:', callbackData);
+  // REMOVED: /api/jenga/webhook - Now handled by unified webhook handler in server/api-routes.ts
+  // This endpoint has been deprecated to prevent conflicts with the unified payment system
 
-      // Verify the callback is legitimate
-      if (process.env.JENGA_API_KEY && process.env.JENGA_MERCHANT_CODE && process.env.JENGA_CONSUMER_SECRET) {
-        const { createJengaApiClient } = await import('./services/jengaApi');
-        const jengaClient = createJengaApiClient();
-        
-        const isValid = await jengaClient.verifyPaymentCallback(callbackData);
-        if (!isValid) {
-          return res.status(400).json({ message: "Invalid callback signature" });
-        }
-      }
+  // REMOVED: /api/jenga/payment-status - Now handled by unified payment service in server/api-routes.ts
+  // This endpoint has been deprecated to prevent conflicts with the unified payment system
 
-      // Process payment status update
-      if (callbackData.transactionId && callbackData.status) {
-        // Find payment by transaction reference or notes containing transaction ID
-        const payments = await storage.getPayments();
-        const payment = payments.find(p => 
-          p.notes?.includes(callbackData.transactionId) ||
-          p.notes?.includes(callbackData.reference)
-        );
+  // REMOVED: /api/jenga/balance - Now handled by unified payment service in server/api-routes.ts
+  // This endpoint has been deprecated to prevent conflicts with the unified payment system
 
-        if (payment) {
-          const newStatus = callbackData.status === 'SUCCESS' || callbackData.status === 'COMPLETED' 
-            ? 'completed' 
-            : callbackData.status === 'FAILED' 
-            ? 'failed' 
-            : 'pending';
-
-          await storage.updatePayment(payment.id, {
-            paymentStatus: newStatus as any,
-            paidDate: newStatus === 'completed' ? new Date() : null,
-            mpesaTransactionId: callbackData.transactionId,
-            mpesaReceiptNumber: callbackData.receiptNumber || null,
-            notes: `${payment.notes} - Status updated via webhook: ${callbackData.status}`,
-          });
-
-          console.log(`Payment ${payment.id} status updated to ${newStatus}`);
-        }
-      }
-
-      res.json({ success: true, message: "Webhook processed" });
-    } catch (error) {
-      console.error("Error processing JengaAPI webhook:", error);
-      res.status(500).json({ message: "Failed to process webhook" });
-    }
-  });
-
-  // JengaAPI Status Check endpoint
-  app.get('/api/jenga/payment-status/:transactionId', async (req, res) => {
-    try {
-      const { transactionId } = req.params;
-
-      if (process.env.JENGA_API_KEY && process.env.JENGA_MERCHANT_CODE && process.env.JENGA_CONSUMER_SECRET) {
-        const { createJengaApiClient } = await import('./services/jengaApi');
-        const jengaClient = createJengaApiClient();
-        
-        const status = await jengaClient.getPaymentStatus(transactionId);
-        res.json(status);
-      } else {
-        res.json({ 
-          status: 'PENDING',
-          message: 'JengaAPI not configured - development mode',
-          transactionId 
-        });
-      }
-    } catch (error) {
-      console.error("Error checking payment status:", error);
-      res.status(500).json({ message: "Failed to check payment status" });
-    }
-  });
-
-  // JengaAPI Account Balance endpoint
-  app.get('/api/jenga/balance/:accountNumber?', async (req, res) => {
-    try {
-      const accountNumber = req.params.accountNumber || process.env.JENGA_MERCHANT_CODE;
-
-      if (!accountNumber) {
-        return res.status(400).json({ message: "Account number required" });
-      }
-
-      if (process.env.JENGA_API_KEY && process.env.JENGA_MERCHANT_CODE && process.env.JENGA_CONSUMER_SECRET) {
-        const { createJengaApiClient } = await import('./services/jengaApi');
-        const jengaClient = createJengaApiClient();
-        
-        const balance = await jengaClient.getAccountBalance(accountNumber);
-        res.json(balance);
-      } else {
-        res.json({ 
-          accountNumber,
-          currency: 'KES',
-          balances: {
-            available: '0.00',
-            actual: '0.00'
-          },
-          message: 'JengaAPI not configured - development mode'
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching account balance:", error);
-      res.status(500).json({ message: "Failed to fetch account balance" });
-    }
-  });
-
-  // Unified Payment Provider endpoints
-  app.get('/api/providers/health', async (req, res) => {
-    try {
-      const { getUnifiedPaymentService } = await import('./services/payment-providers/unified-payment-service');
-      const unifiedService = getUnifiedPaymentService();
-      
-      const healthStatus = await unifiedService.checkAllProvidersHealth();
-      res.json({
-        timestamp: new Date().toISOString(),
-        providers: healthStatus,
-        overall: Object.values(healthStatus).some(status => status) ? 'healthy' : 'unhealthy'
-      });
-    } catch (error) {
-      console.error("Error checking provider health:", error);
-      res.status(500).json({ 
-        error: 'Failed to check provider health',
-        timestamp: new Date().toISOString()
-      });
-    }
-  });
+  // REMOVED: /api/providers/health - Now handled by unified payment service in server/api-routes.ts
+  // This endpoint has been deprecated to prevent conflicts with the unified payment system
 
   app.get('/api/providers/capabilities', async (req, res) => {
     try {
       const { getUnifiedPaymentService } = await import('./services/payment-providers/unified-payment-service');
       const unifiedService = getUnifiedPaymentService();
       
-      const capabilities = await unifiedService.getProviderCapabilities();
+      const capabilities = await unifiedService.getAllProviderCapabilities();
       res.json({
         timestamp: new Date().toISOString(),
         providers: capabilities
@@ -695,7 +483,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { getUnifiedPaymentService } = await import('./services/payment-providers/unified-payment-service');
       const unifiedService = getUnifiedPaymentService();
       
-      const status = await unifiedService.checkPaymentStatus(transactionId, provider as any);
+      const status = await unifiedService.getPaymentStatus(transactionId, provider as any);
       res.json(status);
     } catch (error) {
       console.error("Error checking payment status:", error);
@@ -718,65 +506,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // JengaAPI Health Check endpoint
-  app.get('/api/jenga/health', async (req, res) => {
-    try {
-      if (process.env.JENGA_API_KEY && process.env.JENGA_MERCHANT_CODE && process.env.JENGA_CONSUMER_SECRET) {
-        const { createJengaApiClient } = await import('./services/jengaApi');
-        const jengaClient = createJengaApiClient();
-        
-        const isHealthy = await jengaClient.healthCheck();
-        res.json({ 
-          status: isHealthy ? 'healthy' : 'unhealthy',
-          timestamp: new Date().toISOString(),
-          configured: true 
-        });
-      } else {
-        res.json({ 
-          status: 'not_configured',
-          message: 'JengaAPI credentials not configured',
-          timestamp: new Date().toISOString(),
-          configured: false 
-        });
-      }
-    } catch (error) {
-      console.error("Error checking JengaAPI health:", error);
-      res.status(500).json({ 
-        status: 'error',
-        message: 'Health check failed',
-        timestamp: new Date().toISOString() 
-      });
-    }
-  });
+  // REMOVED: /api/jenga/health - Now handled by unified payment service in server/api-routes.ts
+  // This endpoint has been deprecated to prevent conflicts with the unified payment system
 
-  // KYC Verification endpoint
-  app.post('/api/jenga/verify-kyc', async (req, res) => {
-    try {
-      const { nationalId, firstName, lastName } = req.body;
-
-      if (!nationalId || !firstName || !lastName) {
-        return res.status(400).json({ message: "National ID, first name and last name are required" });
-      }
-
-      if (process.env.JENGA_API_KEY && process.env.JENGA_MERCHANT_CODE && process.env.JENGA_CONSUMER_SECRET) {
-        const { createJengaApiClient } = await import('./services/jengaApi');
-        const jengaClient = createJengaApiClient();
-        
-        const verification = await jengaClient.verifyKYC(nationalId, firstName, lastName);
-        res.json(verification);
-      } else {
-        res.json({ 
-          verified: true,
-          message: 'JengaAPI not configured - development mode accepts all KYC',
-          nationalId,
-          firstName,
-          lastName
-        });
-      }
-    } catch (error) {
-      console.error("Error verifying KYC:", error);
-      res.status(500).json({ message: "Failed to verify KYC" });
-    }
-  });
+  // REMOVED: /api/jenga/verify-kyc - KYC verification should be handled through dedicated services
+  // This endpoint has been deprecated to prevent security risks and maintain separation of concerns
 
   // Database seeding endpoint (development only)
   if (process.env.NODE_ENV === 'development') {
@@ -792,179 +526,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }
 
-  // Unified webhook endpoints for all payment providers
-  app.post('/api/webhooks/:provider', async (req, res) => {
-    try {
-      const provider = req.params.provider as 'jenga' | 'safaricom' | 'coop';
-      const callbackData = req.body;
-      
-      console.log(`🔔 Unified webhook received from ${provider}:`, callbackData);
+  // REMOVED: /api/webhooks/:provider - Now handled by unified webhook handler in server/api-routes.ts
+  // This endpoint has been deprecated to prevent conflicts with the unified payment system
 
-      // Validate provider
-      if (!['jenga', 'safaricom', 'coop'].includes(provider)) {
-        return res.status(400).json({ 
-          success: false, 
-          message: `Unsupported provider: ${provider}` 
-        });
-      }
+  // REMOVED: /api/payments/:transactionId/status/:provider - Now handled by unified payment service in server/api-routes.ts
+  // This endpoint has been deprecated to prevent conflicts with the unified payment system
 
-      // Import unified payment service
-      const { getUnifiedPaymentService } = await import('./services/payment-providers/unified-payment-service');
-      const paymentService = getUnifiedPaymentService();
+  // REMOVED: Duplicate /api/providers/health - Now handled by unified payment service in server/api-routes.ts
+  // This duplicate endpoint has been deprecated to prevent conflicts with the unified payment system
 
-      // Check if provider is available
-      const availableProviders = paymentService.getAvailableProviders();
-      if (!availableProviders.includes(provider)) {
-        return res.status(503).json({ 
-          success: false, 
-          message: `Provider ${provider} is not available or configured` 
-        });
-      }
-
-      // Process webhook through unified service
-      const webhookResult = await paymentService.processWebhookCallback(callbackData, provider);
-      
-      // Update payment record in database if transaction ID is provided
-      if (webhookResult.transactionId || webhookResult.reference) {
-        const payments = await storage.getPayments();
-        
-        // Find payment by various identifiers
-        const payment = payments.find(p => 
-          (webhookResult.transactionId && (
-            p.transactionId === webhookResult.transactionId ||
-            p.mpesaTransactionId === webhookResult.transactionId ||
-            p.checkoutRequestId === webhookResult.transactionId ||
-            p.notes?.includes(webhookResult.transactionId)
-          )) ||
-          (webhookResult.reference && (
-            p.reference === webhookResult.reference ||
-            p.notes?.includes(webhookResult.reference)
-          ))
-        );
-
-        if (payment) {
-          const updateData: any = {
-            paymentStatus: webhookResult.status,
-            updatedAt: new Date(),
-          };
-
-          // Set completion date if successful
-          if (webhookResult.status === 'completed') {
-            updateData.paidDate = webhookResult.completedAt || new Date();
-          }
-
-          // Update provider-specific fields
-          if (provider === 'jenga') {
-            updateData.mpesaTransactionId = webhookResult.transactionId;
-            updateData.mpesaReceiptNumber = webhookResult.receiptNumber;
-          } else if (provider === 'safaricom') {
-            updateData.mpesaTransactionId = webhookResult.transactionId;
-            updateData.mpesaReceiptNumber = webhookResult.receiptNumber;
-          }
-
-          // Store webhook data
-          updateData.providerData = webhookResult.providerData;
-          updateData.failureReason = webhookResult.failureReason;
-
-          // Update notes
-          updateData.notes = `${payment.notes || ''} - Webhook ${webhookResult.status} at ${new Date().toISOString()}`.trim();
-
-          await storage.updatePayment(payment.id, updateData);
-          
-          console.log(`✅ Payment ${payment.id} updated via ${provider} webhook: ${webhookResult.status}`);
-        } else {
-          console.warn(`⚠️ No payment found for webhook from ${provider}:`, {
-            transactionId: webhookResult.transactionId,
-            reference: webhookResult.reference
-          });
-        }
-      }
-
-      res.json({ 
-        success: true, 
-        message: `Webhook processed successfully`,
-        provider,
-        status: webhookResult.status,
-        transactionId: webhookResult.transactionId 
-      });
-
-    } catch (error) {
-      console.error(`❌ Error processing webhook from ${req.params.provider}:`, error);
-      res.status(500).json({ 
-        success: false, 
-        message: `Failed to process webhook: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        provider: req.params.provider 
-      });
-    }
-  });
-
-  // Unified payment status endpoint
-  app.get('/api/payments/:transactionId/status/:provider', async (req, res) => {
-    try {
-      const { transactionId, provider } = req.params;
-      
-      if (!['jenga', 'safaricom', 'coop'].includes(provider)) {
-        return res.status(400).json({ message: `Unsupported provider: ${provider}` });
-      }
-
-      const { getUnifiedPaymentService } = await import('./services/payment-providers/unified-payment-service');
-      const paymentService = getUnifiedPaymentService();
-      
-      const status = await paymentService.getPaymentStatus(transactionId, provider as any);
-      res.json(status);
-    } catch (error) {
-      console.error("Error fetching payment status:", error);
-      res.status(500).json({ message: "Failed to fetch payment status" });
-    }
-  });
-
-  // Unified provider health check endpoint
-  app.get('/api/providers/health', async (req, res) => {
-    try {
-      const { getUnifiedPaymentService } = await import('./services/payment-providers/unified-payment-service');
-      const paymentService = getUnifiedPaymentService();
-      
-      const healthStatus = await paymentService.checkAllProvidersHealth();
-      res.json({
-        providers: healthStatus,
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error("Error checking provider health:", error);
-      res.status(500).json({ message: "Failed to check provider health" });
-    }
-  });
-
-  // Unified provider capabilities endpoint
-  app.get('/api/providers/capabilities', async (req, res) => {
-    try {
-      const { getUnifiedPaymentService } = await import('./services/payment-providers/unified-payment-service');
-      const paymentService = getUnifiedPaymentService();
-      
-      const availableProviders = paymentService.getAvailableProviders();
-      const capabilities: Record<string, any> = {};
-      
-      for (const providerType of availableProviders) {
-        const provider = paymentService.getProvider(providerType);
-        capabilities[providerType] = {
-          type: provider.providerType,
-          capabilities: provider.capabilities,
-          config: {
-            enabled: provider.config.enabled,
-            sandbox: provider.config.sandbox
-          }
-        };
-      }
-      
-      res.json({
-        providers: capabilities,
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error("Error fetching provider capabilities:", error);
-      res.status(500).json({ message: "Failed to fetch provider capabilities" });
-    }
-  });
+  // REMOVED: Duplicate /api/providers/capabilities - Now handled by unified payment service in server/api-routes.ts
+  // This duplicate endpoint has been deprecated to prevent conflicts with the unified payment system
 
   const httpServer = createServer(app);
   return httpServer;

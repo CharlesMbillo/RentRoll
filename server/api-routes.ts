@@ -574,6 +574,117 @@ export async function setupApiRoutes(router: HttpRouter): Promise<void> {
     }
   });
 
+  // Unified Payment Provider endpoints
+  router.get('/api/providers/health', async (req: HttpRequest, res: HttpResponse) => {
+    try {
+      const { getUnifiedPaymentService } = await import('./services/payment-providers/unified-payment-service');
+      const unifiedService = getUnifiedPaymentService();
+      
+      const healthStatus = await unifiedService.checkAllProvidersHealth();
+      
+      // System is healthy only if ALL enabled providers are healthy
+      // If no providers are enabled, system is unhealthy
+      const enabledProviders = Object.keys(healthStatus);
+      const healthyProviders = Object.values(healthStatus).filter(status => status);
+      const overallHealthy = enabledProviders.length > 0 && healthyProviders.length === enabledProviders.length;
+      
+      res.json({
+        timestamp: new Date().toISOString(),
+        providers: healthStatus,
+        overall: overallHealthy ? 'healthy' : 'unhealthy',
+        summary: {
+          total: enabledProviders.length,
+          healthy: healthyProviders.length,
+          unhealthy: enabledProviders.length - healthyProviders.length
+        }
+      });
+    } catch (error) {
+      console.error("Error checking provider health:", error);
+      res.status(500).json({ 
+        error: 'Failed to check provider health',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  router.get('/api/providers/capabilities', async (req: HttpRequest, res: HttpResponse) => {
+    try {
+      const { getUnifiedPaymentService } = await import('./services/payment-providers/unified-payment-service');
+      const unifiedService = getUnifiedPaymentService();
+      
+      const capabilities = unifiedService.getAllProviderCapabilities();
+      res.json({
+        timestamp: new Date().toISOString(),
+        providers: capabilities
+      });
+    } catch (error) {
+      console.error("Error fetching provider capabilities:", error);
+      res.status(500).json({ 
+        error: 'Failed to fetch provider capabilities',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Unified webhook handler
+  router.post('/api/webhooks/:provider', async (req: HttpRequest, res: HttpResponse) => {
+    try {
+      const provider = req.params!.provider;
+      const { getUnifiedWebhookHandler } = await import('./services/payment-providers/webhook-handler');
+      const webhookHandler = getUnifiedWebhookHandler();
+
+      // Create a mock Express-style request/response for compatibility
+      const mockReq = { ...req, params: { provider } } as any;
+      const mockRes = res as any;
+
+      switch (provider.toLowerCase()) {
+        case 'jenga':
+          await webhookHandler.processJengaWebhook(mockReq, mockRes);
+          break;
+        case 'safaricom':
+          await webhookHandler.processSafaricomWebhook(mockReq, mockRes);
+          break;
+        case 'coop':
+          await webhookHandler.processCoopWebhook(mockReq, mockRes);
+          break;
+        default:
+          res.status(400).json({ error: `Unknown payment provider: ${provider}` });
+      }
+    } catch (error) {
+      console.error(`Error processing ${req.params!.provider} webhook:`, error);
+      res.status(500).json({ error: 'Webhook processing failed' });
+    }
+  });
+
+  // Payment status checking
+  router.get('/api/payments/:transactionId/status/:provider', async (req: HttpRequest, res: HttpResponse) => {
+    try {
+      const { transactionId, provider } = req.params!;
+      const { getUnifiedPaymentService } = await import('./services/payment-providers/unified-payment-service');
+      const unifiedService = getUnifiedPaymentService();
+      
+      const status = await unifiedService.getPaymentStatus(transactionId, provider as any);
+      res.json(status);
+    } catch (error) {
+      console.error("Error checking payment status:", error);
+      res.status(500).json({ error: 'Failed to check payment status' });
+    }
+  });
+
+  // Batch payment processing
+  router.post('/api/payments/batch/rent-collection', async (req: HttpRequest, res: HttpResponse) => {
+    try {
+      const { month, testMode, providerId } = req.body;
+      const { triggerMonthlyRentCollection } = await import('./services/batch-payment-processor');
+      
+      const result = await triggerMonthlyRentCollection(month, testMode);
+      res.json(result);
+    } catch (error) {
+      console.error("Error processing batch rent collection:", error);
+      res.status(500).json({ error: 'Batch rent collection failed' });
+    }
+  });
+
   router.get('/api/jenga/health', async (req: HttpRequest, res: HttpResponse) => {
     try {
       if (process.env.JENGA_API_KEY && process.env.JENGA_MERCHANT_CODE && process.env.JENGA_CONSUMER_SECRET) {

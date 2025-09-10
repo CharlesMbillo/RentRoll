@@ -26,28 +26,48 @@ export class UnifiedPaymentService {
 
   constructor() {
     this.initializeProviders();
-    this.defaultProvider = this.determineDefaultProvider();
+    
+    if (this.providers.size > 0) {
+      this.defaultProvider = this.determineDefaultProvider();
+      console.log(`🎯 Default provider set to: ${this.defaultProvider}`);
+    } else {
+      console.error('❌ CRITICAL: No payment providers are enabled - system cannot operate');
+      console.error('💡 Please configure at least one payment provider (Jenga, Safaricom, or COOP) with valid credentials');
+      throw new Error('No payment providers are configured. System cannot operate without at least one enabled provider. Please check your environment variables and provider configurations.');
+    }
   }
 
   private initializeProviders(): void {
+    console.log('💳 Initializing payment providers...');
+    
     // Initialize all available providers
     const jengaProvider = createJengaProvider();
     const safaricomProvider = createSafaricomProvider();
     const coopProvider = createCoopProvider();
 
+    console.log('🔧 Provider configurations:', {
+      jenga: jengaProvider.config.enabled,
+      safaricom: safaricomProvider.config.enabled,
+      coop: coopProvider.config.enabled
+    });
+
     if (jengaProvider.config.enabled) {
       this.providers.set('jenga', jengaProvider);
+      console.log('✅ Jenga provider initialized');
     }
 
     if (safaricomProvider.config.enabled) {
       this.providers.set('safaricom', safaricomProvider);
+      console.log('✅ Safaricom provider initialized');
     }
 
     if (coopProvider.config.enabled) {
       this.providers.set('coop', coopProvider);
+      console.log('✅ COOP provider initialized');
     }
 
-    console.log(`💳 Payment providers initialized: ${Array.from(this.providers.keys()).join(', ')}`);
+    const enabledProviders = Array.from(this.providers.keys());
+    console.log(`💳 Payment providers initialized: ${enabledProviders.length > 0 ? enabledProviders.join(', ') : 'None'}`);
   }
 
   private determineDefaultProvider(): PaymentProviderType {
@@ -56,7 +76,8 @@ export class UnifiedPaymentService {
     if (this.providers.has('jenga')) return 'jenga';
     if (this.providers.has('coop')) return 'coop';
     
-    throw new Error('No payment providers are configured and enabled');
+    // This should never be reached since constructor checks providers.size > 0
+    throw new Error('INTERNAL ERROR: No providers available despite size check');
   }
 
   /**
@@ -171,6 +192,23 @@ export class UnifiedPaymentService {
     }
 
     return await provider.getBalance(accountNumber);
+  }
+
+  /**
+   * Get capabilities of all available providers
+   */
+  getAllProviderCapabilities(): Record<PaymentProviderType, any> {
+    const capabilities: Partial<Record<PaymentProviderType, any>> = {};
+    
+    const providerKeys = Array.from(this.providers.keys());
+    for (const type of providerKeys) {
+      const provider = this.providers.get(type);
+      if (provider) {
+        capabilities[type] = provider.capabilities;
+      }
+    }
+    
+    return capabilities as Record<PaymentProviderType, any>;
   }
 
   /**
