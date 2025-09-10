@@ -697,6 +697,180 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }
 
+  // Unified webhook endpoints for all payment providers
+  app.post('/api/webhooks/:provider', async (req, res) => {
+    try {
+      const provider = req.params.provider as 'jenga' | 'safaricom' | 'coop';
+      const callbackData = req.body;
+      
+      console.log(`🔔 Unified webhook received from ${provider}:`, callbackData);
+
+      // Validate provider
+      if (!['jenga', 'safaricom', 'coop'].includes(provider)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `Unsupported provider: ${provider}` 
+        });
+      }
+
+      // Import unified payment service
+      const { getUnifiedPaymentService } = await import('./services/payment-providers/unified-payment-service');
+      const paymentService = getUnifiedPaymentService();
+
+      // Check if provider is available
+      const availableProviders = paymentService.getAvailableProviders();
+      if (!availableProviders.includes(provider)) {
+        return res.status(503).json({ 
+          success: false, 
+          message: `Provider ${provider} is not available or configured` 
+        });
+      }
+
+      // Process webhook through unified service
+      const webhookResult = await paymentService.processWebhookCallback(callbackData, provider);
+      
+      // Update payment record in database if transaction ID is provided
+      if (webhookResult.transactionId || webhookResult.reference) {
+        const payments = await storage.getPayments();
+        
+        // Find payment by various identifiers
+        const payment = payments.find(p => 
+          (webhookResult.transactionId && (
+            p.transactionId === webhookResult.transactionId ||
+            p.mpesaTransactionId === webhookResult.transactionId ||
+            p.checkoutRequestId === webhookResult.transactionId ||
+            p.notes?.includes(webhookResult.transactionId)
+          )) ||
+          (webhookResult.reference && (
+            p.reference === webhookResult.reference ||
+            p.notes?.includes(webhookResult.reference)
+          ))
+        );
+
+        if (payment) {
+          const updateData: any = {
+            paymentStatus: webhookResult.status,
+            updatedAt: new Date(),
+          };
+
+          // Set completion date if successful
+          if (webhookResult.status === 'completed') {
+            updateData.paidDate = webhookResult.completedAt || new Date();
+          }
+
+          // Update provider-specific fields
+          if (provider === 'jenga') {
+            updateData.mpesaTransactionId = webhookResult.transactionId;
+            updateData.mpesaReceiptNumber = webhookResult.receiptNumber;
+          } else if (provider === 'safaricom') {
+            updateData.mpesaTransactionId = webhookResult.transactionId;
+            updateData.mpesaReceiptNumber = webhookResult.receiptNumber;
+          }
+
+          // Store webhook data
+          updateData.providerData = webhookResult.providerData;
+          updateData.failureReason = webhookResult.failureReason;
+
+          // Update notes
+          updateData.notes = `${payment.notes || ''} - Webhook ${webhookResult.status} at ${new Date().toISOString()}`.trim();
+
+          await storage.updatePayment(payment.id, updateData);
+          
+          console.log(`✅ Payment ${payment.id} updated via ${provider} webhook: ${webhookResult.status}`);
+        } else {
+          console.warn(`⚠️ No payment found for webhook from ${provider}:`, {
+            transactionId: webhookResult.transactionId,
+            reference: webhookResult.reference
+          });
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        message: `Webhook processed successfully`,
+        provider,
+        status: webhookResult.status,
+        transactionId: webhookResult.transactionId 
+      });
+
+    } catch (error) {
+      console.error(`❌ Error processing webhook from ${req.params.provider}:`, error);
+      res.status(500).json({ 
+        success: false, 
+        message: `Failed to process webhook: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        provider: req.params.provider 
+      });
+    }
+  });
+
+  // Unified payment status endpoint
+  app.get('/api/payments/:transactionId/status/:provider', async (req, res) => {
+    try {
+      const { transactionId, provider } = req.params;
+      
+      if (!['jenga', 'safaricom', 'coop'].includes(provider)) {
+        return res.status(400).json({ message: `Unsupported provider: ${provider}` });
+      }
+
+      const { getUnifiedPaymentService } = await import('./services/payment-providers/unified-payment-service');
+      const paymentService = getUnifiedPaymentService();
+      
+      const status = await paymentService.getPaymentStatus(transactionId, provider as any);
+      res.json(status);
+    } catch (error) {
+      console.error("Error fetching payment status:", error);
+      res.status(500).json({ message: "Failed to fetch payment status" });
+    }
+  });
+
+  // Unified provider health check endpoint
+  app.get('/api/providers/health', async (req, res) => {
+    try {
+      const { getUnifiedPaymentService } = await import('./services/payment-providers/unified-payment-service');
+      const paymentService = getUnifiedPaymentService();
+      
+      const healthStatus = await paymentService.checkAllProvidersHealth();
+      res.json({
+        providers: healthStatus,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error checking provider health:", error);
+      res.status(500).json({ message: "Failed to check provider health" });
+    }
+  });
+
+  // Unified provider capabilities endpoint
+  app.get('/api/providers/capabilities', async (req, res) => {
+    try {
+      const { getUnifiedPaymentService } = await import('./services/payment-providers/unified-payment-service');
+      const paymentService = getUnifiedPaymentService();
+      
+      const availableProviders = paymentService.getAvailableProviders();
+      const capabilities: Record<string, any> = {};
+      
+      for (const providerType of availableProviders) {
+        const provider = paymentService.getProvider(providerType);
+        capabilities[providerType] = {
+          type: provider.providerType,
+          capabilities: provider.capabilities,
+          config: {
+            enabled: provider.config.enabled,
+            sandbox: provider.config.sandbox
+          }
+        };
+      }
+      
+      res.json({
+        providers: capabilities,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error fetching provider capabilities:", error);
+      res.status(500).json({ message: "Failed to fetch provider capabilities" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

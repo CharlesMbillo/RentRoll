@@ -6,6 +6,9 @@ import {
   payments,
   smsNotifications,
   systemSettings,
+  paymentProviders,
+  batchPayments,
+  reconciliationRecords,
   type User,
   type UpsertUser,
   type Property,
@@ -20,6 +23,12 @@ import {
   type InsertSmsNotification,
   type SystemSetting,
   type InsertSystemSetting,
+  type PaymentProvider,
+  type InsertPaymentProvider,
+  type BatchPayment,
+  type InsertBatchPayment,
+  type ReconciliationRecord,
+  type InsertReconciliationRecord,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, gte, lte, like, sql, count } from "drizzle-orm";
@@ -72,6 +81,31 @@ export interface IStorage {
   getSystemSettings(): Promise<SystemSetting[]>;
   getSystemSetting(key: string): Promise<SystemSetting | undefined>;
   upsertSystemSetting(setting: InsertSystemSetting): Promise<SystemSetting>;
+
+  // Payment Provider operations
+  getPaymentProviders(): Promise<PaymentProvider[]>;
+  getPaymentProvider(id: string): Promise<PaymentProvider | undefined>;
+  getPaymentProviderByType(providerType: string): Promise<PaymentProvider | undefined>;
+  createPaymentProvider(provider: InsertPaymentProvider): Promise<PaymentProvider>;
+  updatePaymentProvider(id: string, provider: Partial<InsertPaymentProvider>): Promise<PaymentProvider | undefined>;
+  deletePaymentProvider(id: string): Promise<boolean>;
+  updateProviderHealthStatus(providerType: string, healthStatus: string, lastHealthCheck: Date): Promise<void>;
+
+  // Batch Payment operations
+  getBatchPayments(): Promise<BatchPayment[]>;
+  getBatchPayment(id: string): Promise<BatchPayment | undefined>;
+  createBatchPayment(batch: InsertBatchPayment): Promise<BatchPayment>;
+  updateBatchPayment(id: string, batch: Partial<InsertBatchPayment>): Promise<BatchPayment | undefined>;
+  deleteBatchPayment(id: string): Promise<boolean>;
+
+  // Reconciliation Record operations
+  getReconciliationRecords(): Promise<ReconciliationRecord[]>;
+  getReconciliationRecord(id: string): Promise<ReconciliationRecord | undefined>;
+  getReconciliationRecordsByBatch(batchId: string): Promise<ReconciliationRecord[]>;
+  getReconciliationRecordsByProvider(providerId: string): Promise<ReconciliationRecord[]>;
+  createReconciliationRecord(record: InsertReconciliationRecord): Promise<ReconciliationRecord>;
+  updateReconciliationRecord(id: string, record: Partial<InsertReconciliationRecord>): Promise<ReconciliationRecord | undefined>;
+  deleteReconciliationRecord(id: string): Promise<boolean>;
 
   // Dashboard metrics
   getDashboardMetrics(): Promise<{
@@ -454,6 +488,125 @@ export class DatabaseStorage implements IStorage {
         vacant: vacantRooms,
       },
     };
+  }
+
+  // Payment Provider operations
+  async getPaymentProviders(): Promise<PaymentProvider[]> {
+    return await db.select().from(paymentProviders).orderBy(asc(paymentProviders.providerType));
+  }
+
+  async getPaymentProvider(id: string): Promise<PaymentProvider | undefined> {
+    const [provider] = await db.select().from(paymentProviders).where(eq(paymentProviders.id, id));
+    return provider;
+  }
+
+  async getPaymentProviderByType(providerType: string): Promise<PaymentProvider | undefined> {
+    const [provider] = await db.select().from(paymentProviders).where(eq(paymentProviders.providerType, providerType as any));
+    return provider;
+  }
+
+  async createPaymentProvider(provider: InsertPaymentProvider): Promise<PaymentProvider> {
+    const [newProvider] = await db.insert(paymentProviders).values(provider).returning();
+    return newProvider;
+  }
+
+  async updatePaymentProvider(id: string, provider: Partial<InsertPaymentProvider>): Promise<PaymentProvider | undefined> {
+    const [updatedProvider] = await db
+      .update(paymentProviders)
+      .set({ ...provider, updatedAt: new Date() })
+      .where(eq(paymentProviders.id, id))
+      .returning();
+    return updatedProvider;
+  }
+
+  async deletePaymentProvider(id: string): Promise<boolean> {
+    const result = await db.delete(paymentProviders).where(eq(paymentProviders.id, id));
+    return result.length > 0;
+  }
+
+  async updateProviderHealthStatus(providerType: string, healthStatus: string, lastHealthCheck: Date): Promise<void> {
+    await db
+      .update(paymentProviders)
+      .set({ 
+        healthStatus: healthStatus as "healthy" | "unhealthy" | "unknown",
+        lastHealthCheck,
+        updatedAt: new Date()
+      })
+      .where(eq(paymentProviders.providerType, providerType as any));
+  }
+
+  // Batch Payment operations
+  async getBatchPayments(): Promise<BatchPayment[]> {
+    return await db.select().from(batchPayments).orderBy(desc(batchPayments.createdAt));
+  }
+
+  async getBatchPayment(id: string): Promise<BatchPayment | undefined> {
+    const [batch] = await db.select().from(batchPayments).where(eq(batchPayments.id, id));
+    return batch;
+  }
+
+  async createBatchPayment(batch: InsertBatchPayment): Promise<BatchPayment> {
+    const [newBatch] = await db.insert(batchPayments).values(batch).returning();
+    return newBatch;
+  }
+
+  async updateBatchPayment(id: string, batch: Partial<InsertBatchPayment>): Promise<BatchPayment | undefined> {
+    const [updatedBatch] = await db
+      .update(batchPayments)
+      .set({ ...batch, updatedAt: new Date() })
+      .where(eq(batchPayments.id, id))
+      .returning();
+    return updatedBatch;
+  }
+
+  async deleteBatchPayment(id: string): Promise<boolean> {
+    const result = await db.delete(batchPayments).where(eq(batchPayments.id, id));
+    return result.length > 0;
+  }
+
+  // Reconciliation Record operations
+  async getReconciliationRecords(): Promise<ReconciliationRecord[]> {
+    return await db.select().from(reconciliationRecords).orderBy(desc(reconciliationRecords.createdAt));
+  }
+
+  async getReconciliationRecord(id: string): Promise<ReconciliationRecord | undefined> {
+    const [record] = await db.select().from(reconciliationRecords).where(eq(reconciliationRecords.id, id));
+    return record;
+  }
+
+  async getReconciliationRecordsByBatch(batchId: string): Promise<ReconciliationRecord[]> {
+    return await db
+      .select()
+      .from(reconciliationRecords)
+      .where(eq(reconciliationRecords.batchId, batchId))
+      .orderBy(desc(reconciliationRecords.createdAt));
+  }
+
+  async getReconciliationRecordsByProvider(providerId: string): Promise<ReconciliationRecord[]> {
+    return await db
+      .select()
+      .from(reconciliationRecords)
+      .where(eq(reconciliationRecords.providerId, providerId as any))
+      .orderBy(desc(reconciliationRecords.createdAt));
+  }
+
+  async createReconciliationRecord(record: InsertReconciliationRecord): Promise<ReconciliationRecord> {
+    const [newRecord] = await db.insert(reconciliationRecords).values(record).returning();
+    return newRecord;
+  }
+
+  async updateReconciliationRecord(id: string, record: Partial<InsertReconciliationRecord>): Promise<ReconciliationRecord | undefined> {
+    const [updatedRecord] = await db
+      .update(reconciliationRecords)
+      .set(record)
+      .where(eq(reconciliationRecords.id, id))
+      .returning();
+    return updatedRecord;
+  }
+
+  async deleteReconciliationRecord(id: string): Promise<boolean> {
+    const result = await db.delete(reconciliationRecords).where(eq(reconciliationRecords.id, id));
+    return result.length > 0;
   }
 }
 
