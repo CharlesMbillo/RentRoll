@@ -50,7 +50,7 @@ A comprehensive rental property management platform designed for rent collection
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/CharlesMbillo/RentRoll.git
    cd rentflow-platform
    ```
 
