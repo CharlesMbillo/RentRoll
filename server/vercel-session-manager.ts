@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { randomUUID, createPrivateKey, createPublicKey } from 'crypto';
 import jwt from 'jsonwebtoken';
 
 export interface UserSession {
@@ -67,13 +67,52 @@ export class VercelSessionManager {
     return session;
   }
 
-  // Get signing secret for JWT
-  private getSigningSecret(): string {
-    const secret = process.env.SESSION_SECRET;
-    if (!secret) {
-      throw new Error('SESSION_SECRET environment variable is required for secure session signing');
+  // Format PEM key with proper line breaks
+  private formatPemKey(key: string): string {
+    // Convert escaped newlines to actual newlines first
+    const normalized = key.replace(/\\n/g, '\n');
+    
+    if (normalized.includes('\n')) {
+      return normalized; // Already properly formatted
     }
-    return secret;
+    
+    // Support both PKCS#1 and PKCS#8 formats
+    const pkcs1Pattern = /-----BEGIN RSA (PRIVATE|PUBLIC) KEY-----(.+)-----END RSA (PRIVATE|PUBLIC) KEY-----/;
+    const pkcs8Pattern = /-----BEGIN (PRIVATE|PUBLIC) KEY-----(.+)-----END (PRIVATE|PUBLIC) KEY-----/;
+    
+    if (pkcs1Pattern.test(normalized)) {
+      return normalized.replace(pkcs1Pattern, (match, type1, content, type2) => {
+        const cleanKey = content.replace(/\s+/g, '');
+        const formattedKey = cleanKey.match(/.{1,64}/g)?.join('\n') || cleanKey;
+        return `-----BEGIN RSA ${type1} KEY-----\n${formattedKey}\n-----END RSA ${type2} KEY-----`;
+      });
+    } else {
+      return normalized.replace(pkcs8Pattern, (match, type1, content, type2) => {
+        const cleanKey = content.replace(/\s+/g, '');
+        const formattedKey = cleanKey.match(/.{1,64}/g)?.join('\n') || cleanKey;
+        return `-----BEGIN ${type1} KEY-----\n${formattedKey}\n-----END ${type2} KEY-----`;
+      });
+    }
+  }
+
+  // Get RSA private key for JWT signing
+  private getPrivateKey() {
+    const privateKey = process.env.JWT_PRIVATE_KEY;
+    if (!privateKey) {
+      throw new Error('JWT_PRIVATE_KEY environment variable is required for RSA-based JWT signing');
+    }
+    const formattedKey = this.formatPemKey(privateKey);
+    return createPrivateKey(formattedKey);
+  }
+
+  // Get RSA public key for JWT verification
+  private getPublicKey() {
+    const publicKey = process.env.JWT_PUBLIC_KEY;
+    if (!publicKey) {
+      throw new Error('JWT_PUBLIC_KEY environment variable is required for RSA-based JWT verification');
+    }
+    const formattedKey = this.formatPemKey(publicKey);
+    return createPublicKey(formattedKey);
   }
 
   // For serverless, we encode session data in a signed JWT token
@@ -94,8 +133,8 @@ export class VercelSessionManager {
     };
     
     try {
-      const token = jwt.sign(payload, this.getSigningSecret(), {
-        algorithm: 'HS256',
+      const token = jwt.sign(payload, this.getPrivateKey(), {
+        algorithm: 'RS256',
         issuer: 'rentflow-auth',
         audience: 'rentflow-client'
       });
@@ -111,8 +150,8 @@ export class VercelSessionManager {
   // Verify and decode JWT session token
   decodeSession(jwtToken: string): UserSession | null {
     try {
-      const decoded = jwt.verify(jwtToken, this.getSigningSecret(), {
-        algorithms: ['HS256'],
+      const decoded = jwt.verify(jwtToken, this.getPublicKey(), {
+        algorithms: ['RS256'],
         issuer: 'rentflow-auth',
         audience: 'rentflow-client'
       }) as any;
@@ -123,10 +162,9 @@ export class VercelSessionManager {
         return null;
       }
       
-      // Check if session is still active
-      const expiresAt = new Date(decoded.expiresAt);
-      if (new Date() > expiresAt || !decoded.isActive) {
-        console.log(`Session expired or inactive: ${decoded.id}`);
+      // Check if session is still active (JWT exp claim is already validated by jwt.verify)
+      if (!decoded.isActive) {
+        console.log(`Session inactive: ${decoded.id}`);
         return null;
       }
       
@@ -147,7 +185,7 @@ export class VercelSessionManager {
         lastName: decoded.lastName,
         profileImageUrl: decoded.profileImageUrl,
         createdAt: new Date(decoded.createdAt),
-        expiresAt: expiresAt,
+        expiresAt: new Date(decoded.expiresAt),
         isActive: decoded.isActive
       };
     } catch (error) {
@@ -167,9 +205,9 @@ export class VercelSessionManager {
     return this.decodeSession(sessionId);
   }
 
-  getUserFromRole(role: 'landlord' | 'caretaker' | 'tenant'): UserSession {
+  getUserFromRole(role: 'landlord' | 'caretaker' | 'tenant'): string {
     const session = this.createSession(role);
-    return session;
+    return this.encodeSession(session);
   }
 
   destroySession(sessionId: string): boolean {
@@ -181,7 +219,7 @@ export class VercelSessionManager {
     return true;
   }
 
-  switchRole(sessionId: string, newRole: 'landlord' | 'caretaker' | 'tenant'): UserSession {
+  switchRole(sessionId: string, newRole: 'landlord' | 'caretaker' | 'tenant'): string {
     // Validate the existing session first
     const currentSession = this.decodeSession(sessionId);
     if (!currentSession) {
@@ -190,8 +228,9 @@ export class VercelSessionManager {
     
     console.log(`🔐 ROLE SWITCH: ${currentSession.role} → ${newRole} for user ${currentSession.firstName}`);
     
-    // Create new session with the new role
-    return this.createSession(newRole);
+    // Create new session with the new role and return encoded token
+    const newSession = this.createSession(newRole);
+    return this.encodeSession(newSession);
   }
 }
 
