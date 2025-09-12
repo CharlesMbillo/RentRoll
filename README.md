@@ -5,6 +5,7 @@ A comprehensive rental property management platform designed for rent collection
 ## Features
 
 \n### 🏢 Property Management
+
 - **Visual Room Matrix**: Interactive grid view of all 74 units with color-coded status indicators
   - 🟢 Green: Paid
   - 🟡 Yellow: Pending  
@@ -14,6 +15,7 @@ A comprehensive rental property management platform designed for rent collection
 - **Property Analytics**: Real-time occupancy rates and revenue tracking
 
 ### 💰 Payment Processing
+
 - **Multi-Provider Integration**: Unified payment system supporting major Kenyan payment providers
   - **Jenga API**: Full-featured payment processing with STK Push, B2C, B2B transfers
   - **Safaricom M-Pesa**: Direct M-Pesa integration with STK Push and webhooks
@@ -25,6 +27,7 @@ A comprehensive rental property management platform designed for rent collection
 - **Automated Reminders**: SMS notifications for upcoming and overdue payments
 
 ### 👥 User Management
+
 - **Role-Based Access Control**: Three distinct user roles
   - **Landlord**: Full system access including financial reports
   - **Caretaker**: Property management with limited financial access
@@ -32,6 +35,7 @@ A comprehensive rental property management platform designed for rent collection
 - **Secure Authentication**: JWT-based session management with production-ready security
 
 ### 📊 Dashboard & Analytics
+
 - **Real-time Metrics**: Occupancy rates, monthly revenue, payment distribution
 - **Tenant Management**: Complete CRUD operations with search and filtering
 - **SMS Communication**: Template-based messaging system
@@ -39,6 +43,7 @@ A comprehensive rental property management platform designed for rent collection
 ## Installation
 
 ### Prerequisites
+
 - Node.js 18+
 - PostgreSQL database (or Neon account)
 - Payment provider credentials (optional, for payment processing)
@@ -49,18 +54,21 @@ A comprehensive rental property management platform designed for rent collection
 ### Setup
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/CharlesMbillo/RentRoll.git
    cd rentflow-platform
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Environment Configuration**
    Create a `.env` file with the following variables:
+
    ```env
    # Database
    DATABASE_URL=postgresql://username:password@localhost:5432/rentflow
@@ -102,6 +110,7 @@ A comprehensive rental property management platform designed for rent collection
    ```
 
 4. **Database Setup**
+
    ```bash
    # Push database schema
    npm run db:push
@@ -111,6 +120,7 @@ A comprehensive rental property management platform designed for rent collection
    ```
 
 5. **Start Development Server**
+
    ```bash
    npm run dev
    ```
@@ -120,6 +130,7 @@ A comprehensive rental property management platform designed for rent collection
 ## Tech Stack
 
 ### Frontend
+
 - **React 18** with TypeScript
 - **Vite** for fast development and building
 - **Tailwind CSS** with shadcn/ui component library
@@ -128,6 +139,7 @@ A comprehensive rental property management platform designed for rent collection
 - **React Hook Form** with Zod validation
 
 ### Backend
+
 - **Node.js** with Express.js
 - **TypeScript** with ES modules
 - **Drizzle ORM** for type-safe database operations
@@ -136,6 +148,7 @@ A comprehensive rental property management platform designed for rent collection
 - **Express Sessions** with PostgreSQL session store
 
 ### Development Tools
+
 - **TypeScript** for type safety
 - **ESLint & Prettier** for code quality
 - **Drizzle Kit** for database migrations
@@ -143,7 +156,7 @@ A comprehensive rental property management platform designed for rent collection
 
 ## Project Structure
 
-```
+``
 ├── client/           # React frontend
 │   ├── src/
 │   │   ├── components/  # Reusable UI components
@@ -163,25 +176,29 @@ A comprehensive rental property management platform designed for rent collection
 │   └── index.ts         # Server entry point
 ├── shared/           # Shared types and schemas
 └── api/              # Vercel serverless functions
-```
+
+``
 
 ## Usage
 
 ### User Roles & Access
 
 #### Landlord/Admin
+
 - Full access to all features
 - Financial reports and analytics
 - User management
 - System configuration
 
 #### Caretaker
+
 - Property and tenant management
 - Limited financial access
 - Room assignments
 - Communication tools
 
 #### Tenant
+
 - Payment processing
 - Payment history
 - Notification preferences
@@ -200,28 +217,33 @@ A comprehensive rental property management platform designed for rent collection
 ## API Endpoints
 
 ### Authentication
+
 - `GET /api/auth/user` - Get current user session
 - `GET /api/login` - Redirect to login page
 - `GET /api/logout` - Logout and destroy session
 
 ### Property Management
+
 - `GET /api/properties` - List all properties
 - `GET /api/rooms/:propertyId` - Get rooms for a property
 - `POST /api/rooms` - Create new room
 
 ### Tenant Management
+
 - `GET /api/tenants` - List all tenants
 - `POST /api/tenants` - Create new tenant
 - `PUT /api/tenants/:id` - Update tenant
 - `DELETE /api/tenants/:id` - Delete tenant
 
 ### Payments
+
 - `GET /api/payments` - List payments
 - `POST /api/payments` - Create payment
 - `POST /api/payments/stk-push` - Initiate payment via unified provider system
 - `POST /api/payments/batch` - Process batch payments for monthly rent collection
 
 ### Payment Providers
+
 - `GET /api/providers/health` - Check health status of all payment providers
 - `GET /api/providers/capabilities` - Get capability matrix for each provider  
 - `POST /api/webhooks/jenga` - Jenga payment webhook callback
@@ -229,6 +251,7 @@ A comprehensive rental property management platform designed for rent collection
 - `POST /api/webhooks/coop` - COOP Bank webhook callback
 
 ### Dashboard
+
 - `GET /api/dashboard/metrics` - Get dashboard analytics
 
 ## Deployment
@@ -254,16 +277,19 @@ VERCEL=1  # If deploying to Vercel
 ### Manual Deployment
 
 1. **Build the Application**
+
    ```bash
    npm run build
    ```
 
 2. **Database Migration**
+
    ```bash
    npm run db:push
    ```
 
 3. **Start Production Server**
+
    ```bash
    npm start
    ```
@@ -308,6 +334,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Support
 
 For support and questions:
+
 - Create an issue in the repository
 - Check the documentation in `/docs` (if available)
 - Review the API documentation for endpoint details
