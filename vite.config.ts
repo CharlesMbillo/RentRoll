@@ -4,12 +4,13 @@ import react from "@vitejs/plugin-react";
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  root: "client",
   plugins: [
     react(),
     // Removed "@replit/vite-plugin-runtime-error-modal"
   ],
   build: {
-    outDir: "dist/client",
+    outDir: "../dist/client",
     emptyOutDir: true,
   },
   server: {
