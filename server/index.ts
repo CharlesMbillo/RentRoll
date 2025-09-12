@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from "express";
 import { createServer } from "http";
 import { HttpRouter, createLoggingMiddleware, createJsonMiddleware } from "./http-router";
