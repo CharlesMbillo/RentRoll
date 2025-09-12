@@ -4,7 +4,7 @@ A comprehensive rental property management platform designed for rent collection
 
 ## Features
 
-### 🏢 Property Management
+\n### 🏢 Property Management
 - **Visual Room Matrix**: Interactive grid view of all 74 units with color-coded status indicators
   - 🟢 Green: Paid
   - 🟡 Yellow: Pending  
